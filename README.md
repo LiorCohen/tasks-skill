@@ -25,19 +25,7 @@ This installs the `/tasks` skill into your Claude Code environment.
 
 ## Setup
 
-After installing the plugin, initialize the `.tasks/` directory in your project:
-
-```bash
-claude -p "Run /tasks and create the .tasks/ directory structure if it doesn't exist"
-```
-
-Or copy the scaffold from this repo:
-
-```bash
-cp -r .tasks/ /path/to/your/project/.tasks/
-```
-
-Make sure to commit the `.tasks/` directory to your repo.
+After installing the plugin, just run `/tasks add <description>` in your project. Claude will create the `.tasks/` directory structure automatically on first use.
 
 Add `.worktrees/` and `.temp/` to your project's `.gitignore`:
 
