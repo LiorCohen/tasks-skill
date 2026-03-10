@@ -1,0 +1,11 @@
+{
+  "name": "tasks-skill",
+  "version": "1.0.0",
+  "description": "Structured task management with a full lifecycle — spec, plan, implement, review, complete",
+  "author": {
+    "name": "LiorCohen"
+  },
+  "skills": [
+    "./skills/"
+  ]
+}

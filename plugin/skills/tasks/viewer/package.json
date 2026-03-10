@@ -1,0 +1,69 @@
+{
+  "name": "tasks-viewer",
+  "displayName": "Tasks Viewer",
+  "description": "Sidebar view for .tasks/ backlog",
+  "version": "0.3.0",
+  "publisher": "local",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onView:tasksBacklog",
+    "onWebviewPanel:taskDetail"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "tasks-viewer",
+          "title": "Tasks",
+          "icon": "media/icons/tasks-icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "tasks-viewer": [
+        {
+          "type": "webview",
+          "id": "tasksBacklog",
+          "name": "Backlog"
+        }
+      ]
+    },
+    "commands": [
+      {
+        "command": "tasksViewer.refresh",
+        "title": "Tasks: Refresh Backlog",
+        "icon": "$(refresh)"
+      }
+    ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "tasksViewer.refresh",
+          "when": "view == tasksBacklog",
+          "group": "navigation"
+        }
+      ]
+    }
+  },
+  "scripts": {
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./"
+  },
+  "devDependencies": {
+    "@types/markdown-it": "^14.1.2",
+    "@types/highlight.js": "^10.1.0",
+    "@types/node": "^20.0.0",
+    "@types/vscode": "^1.85.0",
+    "typescript": "^5.3.0"
+  },
+  "dependencies": {
+    "highlight.js": "^11.11.1",
+    "markdown-it": "^14.1.1"
+  }
+}

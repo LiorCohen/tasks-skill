@@ -1,0 +1,467 @@
+# Task and Plan Schemas
+
+Reference documentation for task and plan file formats.
+
+---
+
+## Task Schema
+
+All task files use YAML frontmatter.
+
+### Frontmatter Fields
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `id` | number | yes | Unique task number |
+| `title` | string | yes | Short title |
+| `type` | enum | no | `epic` or `change`. Default `change` (omit for change tasks). Epics are containers that group related child tasks under a shared objective. |
+| `priority` | enum | no | `low`, `medium`, `high`, `inherit` (unset = unprioritized). `inherit` is only valid on tasks with `parent_epic` — the task inherits its epic's priority. |
+| `status` | enum | yes | `inbox`, `speccing`, `planning`, `plan-review`, `implementing`, `reviewing`, `complete`, `rejected`, `consolidated` |
+| `parent_epic` | number | no | ID of the parent epic (only on child tasks of an epic) |
+| `created` | datetime | yes | `YYYY-MM-DD HH:MM UTC` — **must run `date -u` to get actual time, never invent** |
+| `completed` | datetime | no | `YYYY-MM-DD HH:MM UTC` (when status=complete) — **must run `date -u` to get actual time, never invent** |
+| `consolidated_into` | number | no | Task ID (when status=consolidated) |
+| `rejected_reason` | string | no | Reason for rejection (when status=rejected) |
+| `repos` | string[] | no | Repo directory names affected by this task. Empty `[]` for single-repo projects. |
+| `depends_on` | number[] | no | Task IDs this depends on |
+| `blocks` | number[] | no | Task IDs blocked by this |
+
+### Task File Template
+
+```markdown
+---
+id: 63
+title: Short descriptive title
+priority: medium
+status: inbox
+created: 2026-01-30 14:00 UTC
+repos: []
+depends_on: []
+blocks: []
+---
+
+# Task 63: Short descriptive title
+
+## Description
+
+Full description of what needs to be done.
+
+## Acceptance Criteria
+
+- [ ] Criterion 1
+- [ ] Criterion 2
+```
+
+### Epic Task Template
+
+Epics are container tasks that group related child tasks. They have `type: epic` in frontmatter and list their children in a `## Children` section. Epics do not have their own Changes table — the children carry the actual changes.
+
+```markdown
+---
+id: 175
+title: Overhaul authentication system
+type: epic
+priority: high
+status: speccing
+created: 2026-02-27 16:00 UTC
+repos: [sdd-core]
+---
+
+# Overhaul authentication system
+
+## Description
+
+High-level objective that this group of tasks achieves together.
+
+## Motivation
+
+Why this body of work is needed as a cohesive unit.
+
+## Scope
+
+### In scope
+
+- Area 1 (covered by #176)
+- Area 2 (covered by #177)
+
+### Out of scope
+
+- What this epic explicitly does NOT cover
+
+## Children
+
+| # | Task | Status |
+|---|------|--------|
+| [#176](../1-speccing/176/task.md) | Add JWT token refresh | speccing |
+| [#177](../0-inbox/177/task.md) | Migrate session store to Redis | inbox |
+
+## Acceptance Criteria
+
+- [ ] All child tasks are complete
+- [ ] Integration between children is verified
+```
+
+**IMPORTANT:** Epics do NOT have a Changes section. Each child task defines its own changes independently. The epic's acceptance criteria focus on the overall objective and integration between children.
+
+**Child task backlink:** Every child task must have `parent_epic: <id>` in its frontmatter, linking back to the parent epic.
+
+---
+
+### Specced Task Template
+
+After speccing, task.md must have all 6 required sections with meaningful content:
+
+```markdown
+---
+id: 63
+title: Short descriptive title
+priority: medium
+status: speccing
+created: 2026-01-30 14:00 UTC
+repos: [sdd-core]
+---
+
+# Short descriptive title
+
+## Description
+
+What this task does — clear, specific, not a rough sketch.
+
+## Motivation
+
+Why this change is needed. What problem it solves. What breaks without it.
+
+## Scope
+
+### In scope
+
+- Specific change 1
+- Specific change 2
+
+### Out of scope
+
+- What this task explicitly does NOT cover
+
+## Constraints
+
+- Technical constraints, compatibility requirements, limits
+- Rules that must be followed during implementation
+
+## Changes
+
+Every change must be fully defined here — exact files, exact changes, no ambiguity. Never defer decisions to planning or label anything a "planning detail." The plan builds an execution order for changes decided here.
+
+| File | Change |
+|------|--------|
+| `path/to/file.md` | What changes and why |
+| `path/to/other.ts` | What changes and why |
+
+## Acceptance Criteria
+
+Each criterion must have an external verification method — a command, test, or observable output that proves it works without relying on Claude's self-assessment.
+
+- [ ] Criterion — **verify:** `command or test that proves it`
+- [ ] Criterion — **verify:** `command or test that proves it`
+```
+
+### Completed Task Template
+
+```markdown
+---
+id: 7
+title: External spec handling
+priority: high
+status: complete
+created: 2026-01-25 09:00 UTC
+completed: 2026-01-28 16:30 UTC
+---
+
+# Task 7: External spec handling ✓
+
+## Summary
+
+Brief summary of what was accomplished.
+
+## Details
+
+- Fixed X
+- Added Y
+- Changed Z
+```
+
+### Consolidated Task Template
+
+```markdown
+---
+id: 28
+title: Schema validation skill
+priority: medium
+status: consolidated
+created: 2026-01-20 10:00 UTC
+consolidated_into: 27
+---
+
+# Task 28: Schema validation skill → consolidated into #27
+
+<!-- Original content preserved below -->
+
+## Description
+
+[Original description content remains here unchanged]
+
+## Acceptance Criteria
+
+[Original acceptance criteria remain here unchanged]
+```
+
+**IMPORTANT:** When consolidating, the original task content MUST be preserved in full. Only the frontmatter and title are modified.
+
+### Rejected Task Template
+
+```markdown
+---
+id: 15
+title: Feature that was rejected
+priority: medium
+status: rejected
+created: 2026-01-20 10:00 UTC
+rejected_reason: Out of scope for MVP
+---
+
+# Task 15: Feature that was rejected ✗
+
+<!-- Original content preserved below -->
+
+## Description
+
+[Original description content remains here unchanged]
+
+## Acceptance Criteria
+
+[Original acceptance criteria remain here unchanged]
+```
+
+**IMPORTANT:** When rejecting, the original task content MUST be preserved in full. Only the frontmatter and title are modified.
+
+---
+
+## Changes Schema
+
+Changes are stored as `changes.md` inside the task folder. They are always generated when moving to review or completing a task. They capture **all changes made during the task's lifetime** across all lifecycle stages (planning, implementing, reviewing). Task management changes (`.tasks/` files) are excluded.
+
+### Frontmatter Fields
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `generated` | datetime | yes | `YYYY-MM-DD HH:MM UTC` |
+| `branch` | string | yes | Feature branch name (workspace) |
+| `commits` | number | yes | Number of commits on workspace branch |
+| `repo_branches` | object | no | Mapping of repo name → branch name (multi-repo tasks) |
+| `repo_commits` | object | no | Mapping of repo name → commit count (multi-repo tasks) |
+
+### Changes File Template (always generated)
+
+```markdown
+---
+generated: 2026-02-12 14:30 UTC
+branch: feature/task-19-slug
+commits: 5
+---
+
+# Task #19 — Changes
+
+**Files changed:** 8 (+142 / -37 lines)
+
+| File | Added | Removed |
+|------|------:|--------:|
+| [`src/cli.ts`](src/cli.ts) | +45 | -12 |
+| [`src/types.ts`](src/types.ts) | +20 | -3 |
+```
+
+### Detailed Change Report (appended on user request)
+
+When the user requests a detailed change report, append per-file diff sections below the summary table:
+
+```markdown
+---
+
+## 1. [`src/cli.ts`](src/cli.ts)
+
+Refactored command routing to use a dispatch map.
+
+\`\`\`diff
+<actual diff for this file>
+\`\`\`
+
+---
+
+## 2. [`src/types.ts`](src/types.ts)
+
+Added CommandResult type.
+
+\`\`\`diff
+<actual diff for this file>
+\`\`\`
+```
+
+---
+
+## Plan Schema
+
+Plans are stored as `plan.md` inside the task folder. They are execution plans — implementation order, sequencing, and test plan for changes already fully defined in the spec. They are created during the planning phase and move with the task through its lifecycle.
+
+### Frontmatter Fields
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `title` | string | yes | Plan title |
+| `created` | datetime | yes | `YYYY-MM-DD HH:MM UTC` |
+| `updated` | datetime | no | `YYYY-MM-DD HH:MM UTC` (last modification) |
+| `repos` | string[] | yes | Repo directory names affected by this task. Empty array `[]` for single-repo projects. |
+
+### Plan File Template
+
+```markdown
+---
+title: Task management skill
+created: 2026-01-28 10:00 UTC
+repos:
+  - sdd-core
+---
+
+# Plan: Task Management Skill
+
+## Execution Order
+
+Step-by-step implementation sequence. Each step references changes from the spec and describes HOW to implement them, in what order, and with what dependencies.
+
+### Step 1: [Component/area — what to do first]
+
+- Files: `path/to/file.ts`, `path/to/other.ts`
+- Why first: no dependencies, other steps build on this
+- Implementation approach: brief strategy notes
+
+### Step 2: [Component/area — what to do next]
+
+- Files: `path/to/file.ts`
+- Depends on: Step 1
+- Implementation approach: brief strategy notes
+
+### Step 3: [Tests]
+
+- Write tests for steps 1–2
+- Depends on: Steps 1–2
+
+## Tests
+
+### Unit Tests
+- [ ] `test_description_of_behavior`
+- [ ] `test_another_behavior`
+
+### Integration Tests
+- [ ] `test_components_work_together`
+
+### E2E Tests (if applicable)
+- [ ] `test_user_facing_flow`
+
+## Verification
+
+- [ ] Outcome 1 is achieved
+- [ ] Outcome 2 is achieved
+```
+
+### Plan Content Guidelines
+
+**Plans are execution plans, not specs.** The spec defines WHAT changes to make. The plan defines HOW to execute them — in what order, with what dependencies, and what implementation strategy.
+
+| Include in Plans | Do NOT Include in Plans |
+|------------------|-------------------------|
+| Execution order and sequencing | Re-stating what changes to make (that's the spec) |
+| Implementation strategy per step | Full code implementations |
+| Dependencies between steps | Decisions about what to change |
+| Brief code snippets as constraints | Line-by-line instructions |
+| Test plan | Algorithm details |
+
+**Never redefine changes.** If a plan needs to describe what's changing, the spec is incomplete — go back and update the spec, not the plan.
+
+**Tests are required:** Every plan must include an extensive list of tests. Tests define expected behavior and can be reviewed before implementation begins.
+
+---
+
+## INDEX.md Index Structure
+
+Active tasks (planning through reviewing) have their own top-level sections. Inbox tasks are grouped by priority as sub-sections under Inbox.
+
+```markdown
+# Tasks Backlog
+
+---
+
+## Speccing
+
+- [#63](1-speccing/63/): New feature idea
+
+---
+
+## Planning
+
+- [#19](2-planning/19/plan.md): Task management skill
+
+---
+
+## Plan Review
+
+- [#20](3-plan-review/20/): Plugin installation debugging
+
+---
+
+## Implementing
+
+- [#60](4-implementing/60/): Standardize TypeScript imports
+
+---
+
+## Reviewing
+
+- [#55](5-reviewing/55/): Split CHANGELOG.md
+
+---
+
+## Inbox
+
+### High Priority
+
+- [#59](0-inbox/59/): Audit and update agents
+
+### Medium Priority
+
+- [#10](0-inbox/10/): Missing /sdd-help command
+
+### Low Priority
+
+- [#3](0-inbox/3/): Docs missing: CMDO Guide
+
+### Unprioritized
+
+- [#64](0-inbox/64/): Another idea
+
+---
+
+## Complete
+
+- [#62](6-complete/62/): Unified CLI system ✓ (2026-01-30)
+
+---
+
+## Rejected
+
+- [#5](7-rejected/5/): Out of scope feature
+
+---
+
+## Consolidated
+
+- [#28](8-consolidated/28/) → #27
+```
+
+**Note:** Links point to task folders. Priority is determined by the `priority` frontmatter field. Priority sub-sections only appear under Inbox.
