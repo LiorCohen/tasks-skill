@@ -532,6 +532,8 @@ Quick reference for which CLI command maps to each user instruction:
 | "Task 19 is ready for review" | Critic → `review <id>`, then `transition <id> reviewing` | Generates revw.md |
 | "Task 19 is done" / "Complete #19" | Critic → `complete <id>` | — |
 | "Reject task 19" | `reject <id> <reason>` | No critic needed |
+| "Install the viewer" | `install-viewer` | Remind user to reload VS Code |
+| "Uninstall the viewer" | `uninstall-viewer` | Remind user to reload VS Code |
 
 **Note:** The critic gate does NOT apply to:
 - `add` / `add-epic` / `add-to-epic` (no prior phase to review)

@@ -63,6 +63,37 @@ Each task is a folder named by its ID containing up to 5 files:
 
 ## Commands
 
+### Help
+
+```
+/tasks help
+```
+
+Print this command list:
+
+```
+/tasks                             — View backlog
+/tasks list                        — View backlog (alias)
+/tasks <id>                        — View single task
+/tasks add <description>           — Add task to inbox
+/tasks add epic <description>      — Add epic to inbox
+/tasks add-to-epic <eid> <desc>    — Add child task to epic
+/tasks prioritize <id> <level>     — Set priority (high/medium/low)
+/tasks spec <id>                   — Start speccing
+/tasks plan <id>                   — Start planning
+/tasks plan-review <id>            — Mark plan ready for review
+/tasks implement <id>              — Start implementing
+/tasks review <id>                 — Submit for review
+/tasks complete <id>               — Complete task (merge + cleanup)
+/tasks reject <id> [reason]        — Reject task
+/tasks consolidate <id> into <id>  — Consolidate into another task
+/tasks audit                       — Run structural audit
+/tasks install-viewer              — Build & install VS Code extension
+/tasks uninstall-viewer            — Remove VS Code extension
+```
+
+---
+
 ### View Backlog
 
 ```
@@ -538,6 +569,7 @@ The user decides when to advance between phases. Always wait for their explicit 
 - **Worktree lifecycle:** Created by `/tasks implement`, removed by `/tasks complete`
 - **Preserve content:** Never lose original content when consolidating/rejecting
 - **Branch isolation:** Feature branches only modify their associated task; new tasks go on main
+- **Viewer extension:** `install-viewer` builds and installs the VS Code sidebar; `uninstall-viewer` removes it. Reload VS Code after either.
 - **Epic Sync (mandatory):** When `data.epic_sync_needed` is present in CLI output, run `python3 $TASKS_CLI epic-sync <id>` and commit the result. Never skip this.
 - **Real timestamps only:** The CLI handles timestamps automatically. When writing files manually (e.g., plan.md), run `date -u '+%Y-%m-%d %H:%M UTC'` for actual time — never invent dates.
 

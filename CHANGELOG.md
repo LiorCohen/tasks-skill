@@ -2,10 +2,12 @@
 
 All notable changes to the tasks-skill plugin are documented here.
 
-## [2.1.0] - 2026-03-12
+## [2.2.0] - 2026-03-12
 
 ### Added
 
+- **`/tasks help` command**: Prints a complete command reference listing all available `/tasks` subcommands.
+- **Viewer command discoverability**: Added `install-viewer` / `uninstall-viewer` to the workflows command reference table and SKILL.md quick reference.
 - **`install-viewer` / `uninstall-viewer` CLI commands**: One-step build, install, and removal of the VS Code viewer extension with structured JSON output.
 - **CONTRIBUTING.md**: Project structure, release checklist, testing instructions, and code style notes.
 - **CLAUDE.md**: Release process reference for Claude Code.
