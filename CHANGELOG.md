@@ -2,6 +2,23 @@
 
 All notable changes to the tasks-skill plugin are documented here.
 
+## [2.1.0] - 2026-03-12
+
+### Added
+
+- **`install-viewer` / `uninstall-viewer` CLI commands**: One-step build, install, and removal of the VS Code viewer extension with structured JSON output.
+- **CONTRIBUTING.md**: Project structure, release checklist, testing instructions, and code style notes.
+- **CLAUDE.md**: Release process reference for Claude Code.
+
+### Fixed
+
+- **Detail panel tracks task across status changes**: Panel now keys by task ID and scans status directories dynamically, so it stays connected when a task transitions (e.g., inbox → speccing).
+
+### Viewer (1.1.0)
+
+- Panel resolves task location on every refresh instead of caching the initial path.
+- Webview state serializes `taskId` instead of `taskRelPath` (backward-compatible deserialization for old state).
+
 ## [2.0.0] - 2026-03-12
 
 ### Breaking Changes

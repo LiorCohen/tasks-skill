@@ -2,7 +2,7 @@
   "name": "tasks-viewer",
   "displayName": "Tasks Viewer",
   "description": "Sidebar view for .tasks/ backlog",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "publisher": "local",
   "engines": {
     "vscode": "^1.85.0"
