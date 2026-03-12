@@ -30,7 +30,6 @@ type TaskFrontmatter = {
   readonly priority?: string;
   readonly parentEpic?: string;
   readonly created?: string;
-  readonly repos?: ReadonlyArray<string>;
 };
 
 const md = new MarkdownIt({
@@ -117,12 +116,30 @@ export class TaskDetailPanel {
 
   private getHtml(): string {
     const taskDir = path.join(this.tasksDir, path.dirname(this.taskRelPath));
-    const taskPath = path.join(this.tasksDir, this.taskRelPath);
+
+    // Read metadata from task.yaml (new) or task.md frontmatter (legacy)
+    const yamlPath = path.join(taskDir, 'task.yaml');
+    const legacyMdPath = path.join(taskDir, 'task.md');
+    const specPath = path.join(taskDir, 'spec.md');
     const planPath = path.join(taskDir, 'plan.md');
+    const implPath = path.join(taskDir, 'impl.md');
+    const revwPath = path.join(taskDir, 'revw.md');
+    // Legacy fallback
     const changesPath = path.join(taskDir, 'changes.md');
 
-    const taskContent = safeRead(taskPath);
-    const { frontmatter, body: taskBody } = parseFrontmatterAndBody(taskContent);
+    let frontmatter: TaskFrontmatter;
+    let specBody: string;
+
+    if (fs.existsSync(yamlPath)) {
+      // New format: task.yaml + spec.md
+      frontmatter = parseYamlMeta(safeRead(yamlPath));
+      specBody = fs.existsSync(specPath) ? parseFrontmatterAndBody(safeRead(specPath)).body : '';
+    } else {
+      // Legacy: task.md with frontmatter
+      const parsed = parseFrontmatterAndBody(safeRead(legacyMdPath));
+      frontmatter = parsed.frontmatter;
+      specBody = parsed.body;
+    }
 
     const id = frontmatter.id ?? path.basename(taskDir);
     const title = frontmatter.title ?? 'Untitled Task';
@@ -133,20 +150,32 @@ export class TaskDetailPanel {
     const priorityLabel = priority ? (PRIORITY_LABELS[priority] ?? priority) : '\u26AA None';
     const parentEpic = frontmatter.parentEpic;
     const created = frontmatter.created ?? '';
-    const repos = frontmatter.repos?.length ? frontmatter.repos.join(', ') : '\u2014';
 
     const hasPlan = fs.existsSync(planPath);
-    const hasChanges = fs.existsSync(changesPath);
+    const hasImpl = fs.existsSync(implPath);
+    const hasRevw = fs.existsSync(revwPath);
+    const hasLegacyChanges = fs.existsSync(changesPath) && !hasRevw;
 
+    const yamlRelPath = path.relative(this.tasksDir, yamlPath).replace(/\\/g, '/');
+    const specRelPath = path.relative(this.tasksDir, specPath).replace(/\\/g, '/');
     const planRelPath = path.relative(this.tasksDir, planPath).replace(/\\/g, '/');
+    const implRelPath = path.relative(this.tasksDir, implPath).replace(/\\/g, '/');
+    const revwRelPath = path.relative(this.tasksDir, revwPath).replace(/\\/g, '/');
     const changesRelPath = path.relative(this.tasksDir, changesPath).replace(/\\/g, '/');
-    const taskRelPathNorm = this.taskRelPath.replace(/\\/g, '/');
 
     const planRendered = hasPlan
       ? md.render(parseFrontmatterAndBody(safeRead(planPath)).body)
       : '';
 
-    const changesRendered = hasChanges
+    const implRendered = hasImpl
+      ? md.render(parseFrontmatterAndBody(safeRead(implPath)).body)
+      : '';
+
+    const revwRendered = hasRevw
+      ? md.render(parseFrontmatterAndBody(safeRead(revwPath)).body)
+      : '';
+
+    const changesRendered = hasLegacyChanges
       ? md.render(parseFrontmatterAndBody(safeRead(changesPath)).body)
       : '';
 
@@ -370,28 +399,31 @@ export class TaskDetailPanel {
       <div class="meta-item">
         <span class="meta-label">Priority:</span>
         <span class="priority-display">${priorityLabel}</span>
-        <span class="priority-buttons" data-task-path="${escapeHtml(taskRelPathNorm)}">
+        <span class="priority-buttons" data-task-path="${escapeHtml(yamlRelPath)}">
           <button class="prio-btn${priority === 'high' ? ' active' : ''}" data-priority="high" title="High">\u{1F534}</button>
           <button class="prio-btn${priority === 'medium' ? ' active' : ''}" data-priority="medium" title="Medium">\u{1F7E1}</button>
           <button class="prio-btn${priority === 'low' ? ' active' : ''}" data-priority="low" title="Low">\u{1F535}</button>
         </span>
       </div>
-      <div class="meta-item"><span class="meta-label">Repos:</span> ${escapeHtml(repos)}</div>
       ${created ? `<div class="meta-item"><span class="meta-label">Created:</span> ${escapeHtml(created)}</div>` : ''}
     </div>
     <div class="tabs">
-      <button class="tab active" data-tab="task">task.md <span class="tab-open-icon" data-path="${escapeHtml(taskRelPathNorm)}" title="Open in editor">${OPEN_ICON}</span></button>
+      <button class="tab active" data-tab="spec">spec.md <span class="tab-open-icon" data-path="${escapeHtml(specRelPath)}" title="Open in editor">${OPEN_ICON}</span></button>
       ${hasPlan ? `<button class="tab" data-tab="plan">plan.md <span class="tab-open-icon" data-path="${escapeHtml(planRelPath)}" title="Open in editor">${OPEN_ICON}</span></button>` : ''}
-      ${hasChanges ? `<button class="tab" data-tab="changes">changes.md <span class="tab-open-icon" data-path="${escapeHtml(changesRelPath)}" title="Open in editor">${OPEN_ICON}</span></button>` : ''}
+      ${hasImpl ? `<button class="tab" data-tab="impl">impl.md <span class="tab-open-icon" data-path="${escapeHtml(implRelPath)}" title="Open in editor">${OPEN_ICON}</span></button>` : ''}
+      ${hasRevw ? `<button class="tab" data-tab="revw">revw.md <span class="tab-open-icon" data-path="${escapeHtml(revwRelPath)}" title="Open in editor">${OPEN_ICON}</span></button>` : ''}
+      ${hasLegacyChanges ? `<button class="tab" data-tab="changes">changes.md <span class="tab-open-icon" data-path="${escapeHtml(changesRelPath)}" title="Open in editor">${OPEN_ICON}</span></button>` : ''}
     </div>
   </div>
 
-  <div class="tab-content active" id="tab-task">
-    <div class="content rendered-md">${md.render(taskBody)}</div>
+  <div class="tab-content active" id="tab-spec">
+    <div class="content rendered-md">${md.render(specBody)}</div>
   </div>
 
   ${hasPlan ? `<div class="tab-content" id="tab-plan"><div class="content rendered-md">${planRendered}</div></div>` : ''}
-  ${hasChanges ? `<div class="tab-content" id="tab-changes"><div class="content rendered-md">${changesRendered}</div></div>` : ''}
+  ${hasImpl ? `<div class="tab-content" id="tab-impl"><div class="content rendered-md">${implRendered}</div></div>` : ''}
+  ${hasRevw ? `<div class="tab-content" id="tab-revw"><div class="content rendered-md">${revwRendered}</div></div>` : ''}
+  ${hasLegacyChanges ? `<div class="tab-content" id="tab-changes"><div class="content rendered-md">${changesRendered}</div></div>` : ''}
 
   <script>
     const vscode = acquireVsCodeApi();
@@ -450,11 +482,6 @@ const parseFrontmatterAndBody = (content: string): { readonly frontmatter: TaskF
     return m ? m[1].trim().replace(/^['"]|['"]$/g, '') : undefined;
   };
 
-  const reposMatch = fmRaw.match(/repos:\s*\[([^\]]*)\]/);
-  const repos = reposMatch
-    ? reposMatch[1].split(',').map(r => r.trim().replace(/['"]/g, '')).filter(Boolean)
-    : [];
-
   const priority = get('priority');
   const rawType = get('type');
   const type: TaskType | undefined = rawType === 'epic' ? 'epic' : rawType === 'change' ? 'change' : undefined;
@@ -468,15 +495,46 @@ const parseFrontmatterAndBody = (content: string): { readonly frontmatter: TaskF
       priority: priority === 'null' ? undefined : priority,
       parentEpic: get('parent_epic'),
       created: get('created'),
-      repos,
     },
     body,
+  };
+};
+
+const parseYamlMeta = (content: string): TaskFrontmatter => {
+  const get = (key: string): string | undefined => {
+    const m = content.match(new RegExp(`^${key}:\\s*(.+)$`, 'm'));
+    return m ? m[1].trim().replace(/^['"]|['"]$/g, '') : undefined;
+  };
+
+  const priority = get('priority');
+  const rawType = get('type');
+  const type: TaskType | undefined = rawType === 'epic' ? 'epic' : rawType === 'change' ? 'change' : undefined;
+
+  return {
+    id: get('id'),
+    title: get('title'),
+    type,
+    status: get('status'),
+    priority: priority === 'null' ? undefined : priority,
+    parentEpic: get('parent_epic'),
+    created: get('created'),
   };
 };
 
 const setPriorityInFile = (filePath: string, priority: string): boolean => {
   try {
     const content = fs.readFileSync(filePath, 'utf8');
+
+    if (filePath.endsWith('.yaml')) {
+      // task.yaml: plain YAML, no --- delimiters
+      const updated = content.match(/^priority:\s*.+$/m)
+        ? content.replace(/^priority:\s*.+$/m, `priority: ${priority}`)
+        : `${content.trimEnd()}\npriority: ${priority}\n`;
+      fs.writeFileSync(filePath, updated, 'utf8');
+      return true;
+    }
+
+    // Legacy: task.md with frontmatter
     const match = content.match(/^(---\n)([\s\S]*?)(\n---)/);
     if (!match) return false;
 

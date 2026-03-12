@@ -1,124 +1,154 @@
-# Task and Plan Schemas
+# Task File Schemas
 
-Reference documentation for task and plan file formats.
+Reference documentation for the 5-file task structure.
 
 ---
 
-## Task Schema
+## Task Directory Structure
 
-All task files use YAML frontmatter.
+Each task is a folder named by its ID containing up to 5 files:
 
-### Frontmatter Fields
+```
+<id>/
+├── task.yaml    # Metadata (always present)
+├── spec.md      # Specification (created on add, filled during speccing)
+├── plan.md      # Execution plan (created during planning)
+├── impl.md      # Implementation report with iteration history (created during implementation)
+└── revw.md      # Review notes and change summary (created during review)
+```
+
+**`task.yaml`** is the only required file. Others are created as the task progresses through its lifecycle.
+
+---
+
+## task.yaml — Metadata
+
+Pure YAML (no `---` delimiters). Contains only structured metadata, never prose.
+
+### Fields
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
 | `id` | number | yes | Unique task number |
 | `title` | string | yes | Short title |
-| `type` | enum | no | `epic` or `change`. Default `change` (omit for change tasks). Epics are containers that group related child tasks under a shared objective. |
-| `priority` | enum | no | `low`, `medium`, `high`, `inherit` (unset = unprioritized). `inherit` is only valid on tasks with `parent_epic` — the task inherits its epic's priority. |
+| `type` | enum | no | `epic` or `change`. Default `change` (omit for change tasks). |
+| `priority` | enum | no | `low`, `medium`, `high`, `inherit` (unset = unprioritized). `inherit` is only valid with `parent_epic`. |
 | `status` | enum | yes | `inbox`, `speccing`, `planning`, `plan-review`, `implementing`, `reviewing`, `complete`, `rejected`, `consolidated` |
-| `parent_epic` | number | no | ID of the parent epic (only on child tasks of an epic) |
+| `parent_epic` | number | no | ID of the parent epic (only on child tasks) |
 | `created` | datetime | yes | `YYYY-MM-DD HH:MM UTC` — **must run `date -u` to get actual time, never invent** |
-| `completed` | datetime | no | `YYYY-MM-DD HH:MM UTC` (when status=complete) — **must run `date -u` to get actual time, never invent** |
-| `consolidated_into` | number | no | Task ID (when status=consolidated) |
-| `rejected_reason` | string | no | Reason for rejection (when status=rejected) |
-| `repos` | string[] | no | Repo directory names affected by this task. Empty `[]` for single-repo projects. |
+| `completed` | datetime | no | `YYYY-MM-DD HH:MM UTC` (set on completion) |
+| `consolidated_into` | number | no | Target task ID (set on consolidation) |
+| `rejected_reason` | string | no | Reason for rejection (set on rejection) |
 | `depends_on` | number[] | no | Task IDs this depends on |
 | `blocks` | number[] | no | Task IDs blocked by this |
 
-### Task File Template
+### Template — New task
 
-```markdown
----
+```yaml
 id: 63
 title: Short descriptive title
-priority: medium
 status: inbox
 created: 2026-01-30 14:00 UTC
-repos: []
 depends_on: []
 blocks: []
----
-
-# Task 63: Short descriptive title
-
-## Description
-
-Full description of what needs to be done.
-
-## Acceptance Criteria
-
-- [ ] Criterion 1
-- [ ] Criterion 2
 ```
 
-### Epic Task Template
+### Template — Epic
 
-Epics are container tasks that group related child tasks. They have `type: epic` in frontmatter and list their children in a `## Children` section. Epics do not have their own Changes table — the children carry the actual changes.
-
-```markdown
----
+```yaml
 id: 175
 title: Overhaul authentication system
 type: epic
 priority: high
 status: speccing
 created: 2026-02-27 16:00 UTC
-repos: [sdd-core]
----
-
-# Overhaul authentication system
-
-## Description
-
-High-level objective that this group of tasks achieves together.
-
-## Motivation
-
-Why this body of work is needed as a cohesive unit.
-
-## Scope
-
-### In scope
-
-- Area 1 (covered by #176)
-- Area 2 (covered by #177)
-
-### Out of scope
-
-- What this epic explicitly does NOT cover
-
-## Children
-
-| # | Task | Status |
-|---|------|--------|
-| [#176](../1-speccing/176/task.md) | Add JWT token refresh | speccing |
-| [#177](../0-inbox/177/task.md) | Migrate session store to Redis | inbox |
-
-## Acceptance Criteria
-
-- [ ] All child tasks are complete
-- [ ] Integration between children is verified
 ```
 
-**IMPORTANT:** Epics do NOT have a Changes section. Each child task defines its own changes independently. The epic's acceptance criteria focus on the overall objective and integration between children.
+### Template — Child task (under epic)
 
-**Child task backlink:** Every child task must have `parent_epic: <id>` in its frontmatter, linking back to the parent epic.
+```yaml
+id: 176
+title: Add JWT token refresh
+priority: inherit
+status: inbox
+parent_epic: 175
+created: 2026-02-27 16:10 UTC
+depends_on: []
+blocks: []
+```
+
+### Template — Completed task
+
+```yaml
+id: 7
+title: External spec handling
+priority: high
+status: complete
+created: 2026-01-25 09:00 UTC
+completed: 2026-01-28 16:30 UTC
+```
+
+### Template — Rejected task
+
+```yaml
+id: 15
+title: Feature that was rejected
+priority: medium
+status: rejected
+created: 2026-01-20 10:00 UTC
+rejected_reason: Out of scope for MVP
+```
+
+### Template — Consolidated task
+
+```yaml
+id: 28
+title: Schema validation skill
+priority: medium
+status: consolidated
+created: 2026-01-20 10:00 UTC
+consolidated_into: 27
+```
 
 ---
 
-### Specced Task Template
+## spec.md — Specification
 
-After speccing, task.md must have all 6 required sections with meaningful content:
+Has YAML frontmatter (created/updated dates). Contains the task description, scope, constraints, changes, and acceptance criteria. Created on task add with minimal content, filled during speccing phase.
+
+### Frontmatter Fields
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `created` | datetime | yes | `YYYY-MM-DD HH:MM UTC` |
+| `updated` | datetime | no | `YYYY-MM-DD HH:MM UTC` (last modification) |
+
+### Template — New task (minimal)
 
 ```markdown
 ---
-id: 63
-title: Short descriptive title
-priority: medium
-status: speccing
 created: 2026-01-30 14:00 UTC
-repos: [sdd-core]
+---
+
+# Task 63: Short descriptive title
+
+## Description
+
+Short descriptive title
+
+## Acceptance Criteria
+
+- [ ] TBD
+```
+
+### Template — Fully specced task
+
+After speccing, spec.md must have all 6 required sections with meaningful content:
+
+```markdown
+---
+created: 2026-01-28 10:00 UTC
+updated: 2026-01-29 16:00 UTC
 ---
 
 # Short descriptive title
@@ -164,68 +194,54 @@ Each criterion must have an external verification method — a command, test, or
 - [ ] Criterion — **verify:** `command or test that proves it`
 ```
 
-### Completed Task Template
+### Template — Epic spec
+
+Epics do NOT have a Changes section. Each child task defines its own changes independently.
 
 ```markdown
 ---
-id: 7
-title: External spec handling
-priority: high
-status: complete
-created: 2026-01-25 09:00 UTC
-completed: 2026-01-28 16:30 UTC
+created: 2026-02-27 16:00 UTC
 ---
 
-# Task 7: External spec handling ✓
-
-## Summary
-
-Brief summary of what was accomplished.
-
-## Details
-
-- Fixed X
-- Added Y
-- Changed Z
-```
-
-### Consolidated Task Template
-
-```markdown
----
-id: 28
-title: Schema validation skill
-priority: medium
-status: consolidated
-created: 2026-01-20 10:00 UTC
-consolidated_into: 27
----
-
-# Task 28: Schema validation skill → consolidated into #27
-
-<!-- Original content preserved below -->
+# Overhaul authentication system
 
 ## Description
 
-[Original description content remains here unchanged]
+High-level objective that this group of tasks achieves together.
+
+## Motivation
+
+Why this body of work is needed as a cohesive unit.
+
+## Scope
+
+### In scope
+
+- Area 1 (covered by #176)
+- Area 2 (covered by #177)
+
+### Out of scope
+
+- What this epic explicitly does NOT cover
+
+## Children
+
+| # | Task | Status |
+|---|------|--------|
+| [#176](../1-speccing/176/spec.md) | Add JWT token refresh | speccing |
+| [#177](../0-inbox/177/spec.md) | Migrate session store to Redis | inbox |
 
 ## Acceptance Criteria
 
-[Original acceptance criteria remain here unchanged]
+- [ ] All child tasks are complete
+- [ ] Integration between children is verified
 ```
 
-**IMPORTANT:** When consolidating, the original task content MUST be preserved in full. Only the frontmatter and title are modified.
-
-### Rejected Task Template
+### Template — Rejected task spec
 
 ```markdown
 ---
-id: 15
-title: Feature that was rejected
-priority: medium
-status: rejected
 created: 2026-01-20 10:00 UTC
-rejected_reason: Out of scope for MVP
 ---
 
 # Task 15: Feature that was rejected ✗
@@ -241,95 +257,49 @@ rejected_reason: Out of scope for MVP
 [Original acceptance criteria remain here unchanged]
 ```
 
-**IMPORTANT:** When rejecting, the original task content MUST be preserved in full. Only the frontmatter and title are modified.
+### Template — Consolidated task spec
+
+```markdown
+---
+created: 2026-01-20 10:00 UTC
+---
+
+# Task 28: Schema validation skill → consolidated into #27
+
+<!-- Original content preserved below -->
+
+## Description
+
+[Original description content remains here unchanged]
+
+## Acceptance Criteria
+
+[Original acceptance criteria remain here unchanged]
+```
+
+**IMPORTANT:** When rejecting or consolidating, original spec content MUST be preserved in full. Only the heading is modified. Frontmatter is preserved as-is.
 
 ---
 
-## Changes Schema
+## plan.md — Execution Plan
 
-Changes are stored as `changes.md` inside the task folder. They are always generated when moving to review or completing a task. They capture **all changes made during the task's lifetime** across all lifecycle stages (planning, implementing, reviewing). Task management changes (`.tasks/` files) are excluded.
+Has YAML frontmatter (created/updated dates). Contains the implementation sequence, test plan, and verification steps. Created during planning phase. Defines HOW to execute changes already decided in the spec — never redefines WHAT to change.
 
 ### Frontmatter Fields
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
-| `generated` | datetime | yes | `YYYY-MM-DD HH:MM UTC` |
-| `branch` | string | yes | Feature branch name (workspace) |
-| `commits` | number | yes | Number of commits on workspace branch |
-| `repo_branches` | object | no | Mapping of repo name → branch name (multi-repo tasks) |
-| `repo_commits` | object | no | Mapping of repo name → commit count (multi-repo tasks) |
-
-### Changes File Template (always generated)
-
-```markdown
----
-generated: 2026-02-12 14:30 UTC
-branch: feature/task-19-slug
-commits: 5
----
-
-# Task #19 — Changes
-
-**Files changed:** 8 (+142 / -37 lines)
-
-| File | Added | Removed |
-|------|------:|--------:|
-| [`src/cli.ts`](src/cli.ts) | +45 | -12 |
-| [`src/types.ts`](src/types.ts) | +20 | -3 |
-```
-
-### Detailed Change Report (appended on user request)
-
-When the user requests a detailed change report, append per-file diff sections below the summary table:
-
-```markdown
----
-
-## 1. [`src/cli.ts`](src/cli.ts)
-
-Refactored command routing to use a dispatch map.
-
-\`\`\`diff
-<actual diff for this file>
-\`\`\`
-
----
-
-## 2. [`src/types.ts`](src/types.ts)
-
-Added CommandResult type.
-
-\`\`\`diff
-<actual diff for this file>
-\`\`\`
-```
-
----
-
-## Plan Schema
-
-Plans are stored as `plan.md` inside the task folder. They are execution plans — implementation order, sequencing, and test plan for changes already fully defined in the spec. They are created during the planning phase and move with the task through its lifecycle.
-
-### Frontmatter Fields
-
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `title` | string | yes | Plan title |
 | `created` | datetime | yes | `YYYY-MM-DD HH:MM UTC` |
 | `updated` | datetime | no | `YYYY-MM-DD HH:MM UTC` (last modification) |
-| `repos` | string[] | yes | Repo directory names affected by this task. Empty array `[]` for single-repo projects. |
 
-### Plan File Template
+### Template
 
 ```markdown
 ---
-title: Task management skill
 created: 2026-01-28 10:00 UTC
-repos:
-  - sdd-core
 ---
 
-# Plan: Task Management Skill
+# Plan: Short descriptive title
 
 ## Execution Order
 
@@ -372,8 +342,6 @@ Step-by-step implementation sequence. Each step references changes from the spec
 
 ### Plan Content Guidelines
 
-**Plans are execution plans, not specs.** The spec defines WHAT changes to make. The plan defines HOW to execute them — in what order, with what dependencies, and what implementation strategy.
-
 | Include in Plans | Do NOT Include in Plans |
 |------------------|-------------------------|
 | Execution order and sequencing | Re-stating what changes to make (that's the spec) |
@@ -385,6 +353,165 @@ Step-by-step implementation sequence. Each step references changes from the spec
 **Never redefine changes.** If a plan needs to describe what's changing, the spec is incomplete — go back and update the spec, not the plan.
 
 **Tests are required:** Every plan must include an extensive list of tests. Tests define expected behavior and can be reviewed before implementation begins.
+
+---
+
+## impl.md — Implementation Report
+
+Has YAML frontmatter (created/updated dates). Captures each implementation iteration, including the devil's advocate review. Created when implementation begins, appended with each iteration. Previous iterations are never deleted — they provide history of what was tried and why.
+
+### Frontmatter Fields
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `created` | datetime | yes | `YYYY-MM-DD HH:MM UTC` (when implementation started) |
+| `updated` | datetime | no | `YYYY-MM-DD HH:MM UTC` (last iteration added) |
+
+### Template
+
+```markdown
+---
+created: 2026-02-01 10:00 UTC
+---
+
+# Implementation Report: Task #63
+
+## Iteration 1
+
+**Date:** 2026-02-01 10:00 UTC
+**Branch:** feature/task-63-auth
+**Status:** superseded
+
+### Changes Made
+
+| File | Added | Removed | Description |
+|------|------:|--------:|-------------|
+| `src/auth.ts` | +45 | -12 | Refactored token validation |
+| `src/middleware.ts` | +8 | -3 | Added auth middleware hook |
+
+### Acceptance Criteria Results
+
+- [x] Criterion 1 — passed
+- [ ] Criterion 2 — not addressed
+
+### Devil's Advocate Review
+
+**Reviewer:** Subagent (clean context, assumes iteration is wrong)
+**Verdict:** fail
+
+**Findings:**
+- [error] Token refresh not handled for expired sessions (spec.md:Changes)
+- [warning] No test for concurrent refresh race condition (plan.md:Tests)
+
+---
+
+## Iteration 2
+
+**Date:** 2026-02-01 14:30 UTC
+**Branch:** feature/task-63-auth
+**Status:** current
+
+### Changes Made
+
+| File | Added | Removed | Description |
+|------|------:|--------:|-------------|
+| `src/auth.ts` | +62 | -12 | Full token lifecycle with refresh |
+| `src/auth.test.ts` | +30 | -0 | Race condition and expiry tests |
+
+### Acceptance Criteria Results
+
+- [x] Criterion 1 — passed
+- [x] Criterion 2 — passed
+
+### Devil's Advocate Review
+
+**Reviewer:** Subagent (clean context, assumes iteration is wrong)
+**Verdict:** pass
+
+**Findings:**
+- [warning] Error message in line 47 could be more descriptive (minor)
+```
+
+### Iteration Rules
+
+1. **Each iteration gets its own section** (`## Iteration N`). Never modify previous iterations — append new ones.
+2. **Status values:** `current` for the latest iteration, `superseded` for all previous ones. Only one iteration can be `current` at a time.
+3. **Devil's advocate review** is optional but offered to the user after each iteration. The subagent runs with a clean context window, assumes the iteration is wrong, and tries to find what's broken.
+4. **Changes Made** table captures the diff stats for that iteration — what was actually changed, not what was planned.
+5. **Acceptance Criteria Results** maps each spec criterion to pass/fail for that iteration.
+
+---
+
+## revw.md — Review Notes
+
+Has YAML frontmatter (generated date, branch, stats). Contains the final change summary, acceptance criteria results, and review notes. Created when the task moves to reviewing.
+
+### Frontmatter Fields
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `generated` | datetime | yes | `YYYY-MM-DD HH:MM UTC` |
+| `branch` | string | yes | Feature branch name |
+| `commits` | number | yes | Number of commits on branch |
+| `iterations` | number | yes | Number of implementation iterations |
+
+### Template
+
+```markdown
+---
+generated: 2026-02-12 14:30 UTC
+branch: feature/task-63-auth
+commits: 8
+iterations: 2
+---
+
+# Review: Task #63
+
+## Summary
+
+**Files changed:** 8 (+142 / -37 lines)
+**Iterations:** 2
+
+| File | Added | Removed |
+|------|------:|--------:|
+| [`src/auth.ts`](src/auth.ts) | +62 | -12 |
+| [`src/auth.test.ts`](src/auth.test.ts) | +30 | -0 |
+
+## Acceptance Criteria — Final
+
+- [x] Criterion 1 — **verify:** `npm test -- auth`
+- [x] Criterion 2 — **verify:** `npm test -- auth.race`
+
+## Review Notes
+
+_(Filled during review phase — reviewer observations, requested changes, sign-off)_
+```
+
+### Detailed Change Report (appended on user request)
+
+When the user requests a detailed change report, append per-file diff sections below:
+
+```markdown
+---
+
+## 1. [`src/auth.ts`](src/auth.ts)
+
+Refactored token validation and added refresh flow.
+
+\`\`\`diff
+<actual diff for this file>
+\`\`\`
+
+---
+
+## 2. [`src/auth.test.ts`](src/auth.test.ts)
+
+Added race condition and expiry tests.
+
+\`\`\`diff
+<actual diff for this file>
+\`\`\`
+```
 
 ---
 
@@ -464,4 +591,4 @@ Active tasks (planning through reviewing) have their own top-level sections. Inb
 - [#28](8-consolidated/28/) → #27
 ```
 
-**Note:** Links point to task folders. Priority is determined by the `priority` frontmatter field. Priority sub-sections only appear under Inbox.
+**Note:** Links point to task folders. Priority is determined by the `priority` field in task.yaml. Priority sub-sections only appear under Inbox.

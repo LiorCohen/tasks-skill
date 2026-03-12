@@ -1,12 +1,32 @@
 ---
 name: tasks
 description: Manage tasks and plans using the .tasks/ directory.
-model: opus
 ---
 
 # Task Management Skill
 
 Manage the project backlog, track progress, and organize implementation plans.
+
+---
+
+## CLI Tool
+
+Most mechanical operations (creating files, moving folders, updating frontmatter, rebuilding INDEX.md, git commits) are handled by the `tasks_cli.py` script. This eliminates manual file manipulation and ensures consistency.
+
+**Resolve the CLI path** at the start of any `/tasks` command:
+
+```bash
+TASKS_CLI="${CLAUDE_SKILL_DIR}/scripts/tasks_cli.py"
+```
+
+**All CLI output is structured JSON** to stdout. Errors go to stderr. The envelope format:
+
+```json
+{"ok": true, "command": "add", "data": {"id": 1, ...}, "warnings": [...]}
+{"ok": false, "command": "add", "error": "message"}
+```
+
+**Important:** Parse the JSON output to extract IDs, paths, and warnings. When `data.epic_sync_needed` is present, run `epic-sync` before committing. When `warnings` is present, review each warning and act if needed.
 
 ---
 
@@ -28,14 +48,16 @@ Manage the project backlog, track progress, and organize implementation plans.
 
 **Note:** `.gitkeep` files ensure empty directories are tracked in git. Do not delete these files.
 
-Each task is a folder named by its ID containing:
-- `task.md` - the task description and metadata
-- `plan.md` - the execution plan — implementation order, sequencing, and test plan (created during planning phase)
-- `changes.md` - file changes summary (generated during review or before completion)
+Each task is a folder named by its ID containing up to 5 files:
+- `task.yaml` - metadata (pure YAML, always present)
+- `spec.md` - specification (pure markdown, created on add, filled during speccing)
+- `plan.md` - execution plan (created during planning phase)
+- `impl.md` - implementation report with iteration history (created during implementation)
+- `revw.md` - review notes and change summary (created during review)
 
-**Note:** Priority (high/medium/low) is a frontmatter field, not a directory. Tasks are organized by status in directories. In INDEX.md, priority sub-sections appear under the Inbox heading.
+**Note:** Priority (high/medium/low) is a field in `task.yaml`, not a directory. Tasks are organized by status in directories. In INDEX.md, priority sub-sections appear under the Inbox heading.
 
-**Reference:** See [schemas.md](schemas.md) for full task/plan schemas and templates.
+**Reference:** See [schemas.md](schemas.md) for full file schemas and templates.
 
 ---
 
@@ -48,13 +70,11 @@ Each task is a folder named by its ID containing:
 /tasks list
 ```
 
-Read `.tasks/INDEX.md` and display **all** non-archival tasks in a single markdown table. Omit Complete, Rejected, and Consolidated sections (archival). Never truncate, summarize, or collapse rows.
+**Run:** `python3 $TASKS_CLI list`
 
-Render task references as clickable markdown links:
-- If task has a plan.md file: link to plan.md, e.g., `[#67](.tasks/2-planning/67/plan.md)`
-- Otherwise: link to task.md, e.g., `[#67](.tasks/0-inbox/67/task.md)`
+Parse the JSON output and render a markdown table with columns: `Status`, `Priority`, `#`, `Type`, `Task`.
 
-**Table format** — one table, five columns: `Status`, `Priority`, `#`, `Type`, `Task`:
+**Table format:**
 
 ```
 | Status | Priority | # | Type | Task |
@@ -81,8 +101,6 @@ Render task references as clickable markdown links:
 - `🔵 Low`
 - `⚪ —` (unprioritized or null)
 
-Read the `priority` field from each task's `task.md` frontmatter to populate the Priority column for all tasks, including active ones.
-
 **Sort order:** Active statuses first (in the order listed above), then inbox tasks by priority (high, med, low, unprioritized). Within each group, sort by task ID descending.
 
 End with a summary line:
@@ -99,7 +117,7 @@ End with a summary line:
 /tasks 19
 ```
 
-Find and read the task file at `<status-dir>/19/task.md`.
+Read `<status-dir>/19/task.yaml` for metadata and `<status-dir>/19/spec.md` for the full specification.
 
 ---
 
@@ -110,10 +128,9 @@ Find and read the task file at `<status-dir>/19/task.md`.
 /tasks add epic <description>
 ```
 
-1. Determine next task number (highest N + 1)
-2. Create `0-inbox/<N>/task.md` — if `epic` is specified, include `type: epic` in frontmatter
-3. Add to INDEX.md under Inbox
-4. Stage and commit: `git add .tasks/ && git commit -m "Tasks: Add #<N>"`
+**Run:** `python3 $TASKS_CLI add <description>` or `python3 $TASKS_CLI add-epic <description>`
+
+The CLI creates the task folder, writes `task.yaml` + `spec.md`, rebuilds INDEX.md, and commits. Parse the JSON output to get the new task ID from `data.id`.
 
 ---
 
@@ -123,12 +140,9 @@ Find and read the task file at `<status-dir>/19/task.md`.
 /tasks add-to-epic <epic-id> <description>
 ```
 
-1. Verify `<epic-id>` exists and has `type: epic`
-2. Determine next task number (highest N + 1)
-3. Create `0-inbox/<N>/task.md` with `parent_epic: <epic-id>` in frontmatter
-4. Update the epic's `## Children` table with the new task
-5. Add to INDEX.md under Inbox
-6. Stage and commit: `git add .tasks/ && git commit -m "Tasks: Add #<N> to epic #<epic-id>"`
+**Run:** `python3 $TASKS_CLI add-to-epic <epic-id> <description>`
+
+The CLI verifies the epic, creates the child task with `parent_epic` and `priority: inherit`, updates the epic's Children table, rebuilds INDEX.md, and commits. Parse `data.id` for the new task ID.
 
 ---
 
@@ -138,9 +152,9 @@ Find and read the task file at `<status-dir>/19/task.md`.
 /tasks prioritize <id> <high|medium|low>
 ```
 
-1. Update `task.md` frontmatter `priority` field
-2. Move entry to correct priority sub-section under Inbox in INDEX.md
-3. Stage and commit: `git add .tasks/ && git commit -m "Tasks: Prioritize #<id> as <priority>"`
+**Run:** `python3 $TASKS_CLI prioritize <id> <level>`
+
+The CLI updates `task.yaml`, rebuilds INDEX.md, and commits. Errors if the task inherits priority from an epic.
 
 ---
 
@@ -150,17 +164,21 @@ Find and read the task file at `<status-dir>/19/task.md`.
 /tasks spec <id>
 ```
 
-Moves a task from inbox (or back from planning) to speccing, then interactively solicits the task spec from the user.
+**Step 1 — Transition (CLI):**
 
-**From inbox:** Move folder to `1-speccing/`, update status to `speccing`, update INDEX.md, commit. Then begin interactive solicitation.
+**Run:** `python3 $TASKS_CLI transition <id> speccing`
 
-**From planning (back-transition for substantial rework):** Move folder back to `1-speccing/`, update status to `speccing`, update INDEX.md, commit. Then resume solicitation.
+The CLI moves the folder, updates `task.yaml` and INDEX.md. If `data.epic_sync_needed` is present, run `python3 $TASKS_CLI epic-sync <epic-id>`.
 
-**Solicitation:** Ask guiding questions to fill in the 6 required sections (Description, Motivation, Scope, Constraints, Changes, Acceptance Criteria). Iterate as many times as needed — never rush the user toward planning. Only the user decides when the spec is complete.
+Then commit: `git add .tasks/ && git commit -m "Tasks: Move #<id> to speccing"`
+
+**Step 2 — Interactive solicitation (LLM):**
+
+Ask guiding questions to fill in the 6 required sections in `spec.md` (Description, Motivation, Scope, Constraints, Changes, Acceptance Criteria). Iterate as many times as needed — never rush the user toward planning. Only the user decides when the spec is complete.
 
 **All decisions in the spec:** Every change must be fully defined during speccing — exact files, exact changes, no ambiguity. Never defer decisions to planning or label anything a "planning detail." Planning builds an execution plan for changes already decided here.
 
-**Self-sufficiency check:** After each round of user input, re-read the spec and actively check for:
+**Self-sufficiency check:** After each round of user input, re-read `spec.md` and actively check for:
 - **Gaps:** Changes referenced in acceptance criteria but missing from the Changes table (or vice versa). Scope items with no corresponding change.
 - **Contradictions:** Constraints that conflict with proposed changes. Scope "out of scope" items that overlap with listed changes.
 - **Ambiguity:** Changes described vaguely enough that two people could interpret them differently.
@@ -174,13 +192,9 @@ If any issues are found, raise them as open questions — one at a time, resolve
 - Acceptance criteria divide into natural groups with no cross-dependencies
 - The estimated scope clearly exceeds a single reviewable PR
 
-When suggesting, explain: "This task is growing large. Consider converting it to an **epic** with smaller child tasks that can be specced, planned, and reviewed independently. I can create the epic and break this into N child tasks — want me to?" If the user agrees, use `/tasks add epic <title>` for the parent and `/tasks add-to-epic <epic-id> <description>` for each child. Move the original task's content into the epic's description/scope.
+When suggesting, explain: "This task is growing large. Consider converting it to an **epic** with smaller child tasks that can be specced, planned, and reviewed independently. I can create the epic and break this into N child tasks — want me to?" If the user agrees, use the CLI: `python3 $TASKS_CLI add-epic <title>` for the parent and `python3 $TASKS_CLI add-to-epic <epic-id> <description>` for each child.
 
 **Never suggest planning prematurely.** Do not prompt the user to move to planning. When the user signals the spec is ready, run the validation gate. If it fails, explain what's missing and continue iterating.
-
-Stage and commit: `git add .tasks/ && git commit -m "Tasks: Move #<id> to speccing"`
-
-**Epic Sync:** If task has `parent_epic`, update the epic's Children table (status and path) in the same commit.
 
 ---
 
@@ -200,17 +214,16 @@ Stage and commit: `git add .tasks/ && git commit -m "Tasks: Move #<id> to specci
 5. **No open questions remain.**
 If any check fails, refuse with details.
 
-**Phase 1 — Transition (do this first, before any planning work):**
-1. Move folder to `2-planning/`
-2. Update `task.md`: `status: planning`
-3. Create empty `plan.md` skeleton (frontmatter + headings only, no content)
-4. Update INDEX.md
-5. **Epic Sync:** If task has `parent_epic`, update the epic's Children table (status and path)
-6. Stage and commit: `git add .tasks/ && git commit -m "Tasks: Move #<id> to planning"`
+**Phase 1 — Transition (CLI + manual plan.md creation):**
+
+1. **Run:** `python3 $TASKS_CLI transition <id> planning`
+2. Create empty `plan.md` skeleton in the task folder (frontmatter + headings only, no content). See [schemas.md](schemas.md) for the plan template.
+3. If `data.epic_sync_needed` is present, run `python3 $TASKS_CLI epic-sync <epic-id>`
+4. Commit: `git add .tasks/ && git commit -m "Tasks: Move #<id> to planning"`
 
 **Phase 2 — Build execution plan (only after commit completes):**
-6. Research the codebase and write the execution plan in `plan.md` — sequencing, step-by-step implementation order, and test plan for the changes already defined in the spec. Do not redefine what changes to make; that belongs in the spec.
-7. If planning reveals spec gaps (missing files, unclear changes), update task.md directly (never plan.md) and commit as a planning-phase spec update. This should be rare — a well-specced task needs no planning-phase amendments.
+5. Research the codebase and write the execution plan in `plan.md` — sequencing, step-by-step implementation order, and test plan for the changes already defined in the spec. Do not redefine what changes to make; that belongs in the spec.
+6. If planning reveals spec gaps (missing files, unclear changes), update `spec.md` directly (never plan.md) and commit as a planning-phase spec update. This should be rare — a well-specced task needs no planning-phase amendments.
 
 Output clickable link: `[plan.md](.tasks/2-planning/<id>/plan.md)`
 
@@ -222,11 +235,11 @@ Output clickable link: `[plan.md](.tasks/2-planning/<id>/plan.md)`
 /tasks plan-review <id>
 ```
 
-1. Move to `3-plan-review/`
-2. Update status
-3. Update INDEX.md
-4. **Epic Sync:** If task has `parent_epic`, update the epic's Children table (status and path)
-5. Stage and commit: `git add .tasks/ && git commit -m "Tasks: Move #<id> to plan-review"`
+**Run:** `python3 $TASKS_CLI transition <id> plan-review`
+
+If `data.epic_sync_needed` is present, run `python3 $TASKS_CLI epic-sync <epic-id>`.
+
+Commit: `git add .tasks/ && git commit -m "Tasks: Move #<id> to plan-review"`
 
 ---
 
@@ -236,15 +249,72 @@ Output clickable link: `[plan.md](.tasks/2-planning/<id>/plan.md)`
 /tasks implement <id>
 ```
 
-1. Move to `4-implementing/`
-2. Update status
-3. Update INDEX.md
-4. **Epic Sync:** If task has `parent_epic`, update the epic's Children table (status and path)
-5. Stage and commit on main: `git add .tasks/ && git commit -m "Tasks: Move #<id> to implementing"`
-6. Create feature branch: `feature/task-<id>-<slug>`
-7. Create worktree at `.worktrees/task-<id>/` for isolated implementation
-8. Report the created worktree path to the user
-9. **Proceed directly into implementation** — read `plan.md` and begin executing it step by step. Do NOT stop and wait for user instruction.
+**Step 1 — Transition (CLI):**
+
+**Run:** `python3 $TASKS_CLI transition <id> implementing`
+
+If `data.epic_sync_needed` is present, run `python3 $TASKS_CLI epic-sync <epic-id>`.
+
+Commit: `git add .tasks/ && git commit -m "Tasks: Move #<id> to implementing"`
+
+**Step 2 — Create branch and worktree (manual):**
+
+```bash
+git branch feature/task-<id>-<slug>
+mkdir -p .worktrees/task-<id>
+git worktree add .worktrees/task-<id>/ feature/task-<id>-<slug>
+```
+
+Report the created worktree path to the user.
+
+**Step 3 — Create impl.md:**
+
+Create `impl.md` in the task folder with the header:
+
+```markdown
+# Implementation Report: Task #<id>
+```
+
+**Step 4 — Implement (Iteration 1):** Read `plan.md` and begin executing it step by step. Do NOT stop and wait for user instruction. **Proceed directly into implementation.**
+
+When the iteration is done, append the iteration section to `impl.md` (see [schemas.md](schemas.md) for template) with:
+- Changes made (file diff stats + descriptions)
+- Acceptance criteria results (pass/fail per criterion from spec.md)
+- Status: `current`
+
+Then **offer the user a devil's advocate review**: "Want me to run a devil's advocate review? A fresh subagent will assume this iteration is wrong and look for what's broken."
+
+**Devil's advocate subagent:** If the user accepts, launch a fresh Agent subagent:
+
+```
+You are a devil's advocate reviewer for task #<id>, iteration <N>.
+ASSUME the implementation is wrong. Your job is to find what's broken.
+
+Read these files:
+- .tasks/<status-dir>/<id>/spec.md (the specification)
+- .tasks/<status-dir>/<id>/plan.md (the execution plan)
+- .tasks/<status-dir>/<id>/impl.md (the implementation report)
+
+Then examine the actual code changes in the worktree at .worktrees/task-<id>/.
+
+Look for:
+1. Spec violations: Does the code actually do what the spec says? Check each acceptance criterion.
+2. Missing changes: Are there items in the spec's Changes table that weren't implemented?
+3. Unplanned changes: Are there code changes that don't trace back to the spec?
+4. Edge cases: What inputs/states could break this implementation?
+5. Test gaps: Are there behaviors that should be tested but aren't?
+
+Return a JSON verdict:
+{
+  "pass": true/false,
+  "findings": [
+    {"severity": "error|warning", "description": "...", "location": "file:line or spec:section"}
+  ],
+  "summary": "one-line overall assessment"
+}
+```
+
+If the devil's advocate finds errors, append its findings to the iteration in `impl.md`, mark the iteration as `superseded`, and begin a new iteration addressing the findings. Repeat until the devil's advocate passes or the user decides to stop.
 
 **IMPORTANT:** Never implement on main. Never merge or delete any worktree until `/tasks complete`.
 
@@ -256,13 +326,21 @@ Output clickable link: `[plan.md](.tasks/2-planning/<id>/plan.md)`
 /tasks review <id>
 ```
 
-1. Generate `changes.md` in the task folder with frontmatter and file summary table (see [workflows.md](workflows.md) for format)
-2. **Ask the user** if they want a detailed change report (expands `changes.md` with full diffs)
-3. Move to `5-reviewing/`
-4. Update status
-5. Update INDEX.md
-6. **Epic Sync:** If task has `parent_epic`, update the epic's Children table (status and path)
-7. Stage and commit: `git add .tasks/ && git commit -m "Tasks: Move #<id> to reviewing"`
+**Step 1 — Generate review file (CLI):**
+
+**Run:** `python3 $TASKS_CLI review <id>`
+
+The CLI generates `revw.md` with frontmatter and a file summary table. Parse JSON output for stats.
+
+**Step 2 — Ask user** if they want a detailed change report (expands `revw.md` with full diffs). If yes, generate per-file diffs manually and append to `revw.md` (this part requires LLM judgment for descriptions).
+
+**Step 3 — Transition (CLI):**
+
+**Run:** `python3 $TASKS_CLI transition <id> reviewing`
+
+If `data.epic_sync_needed` is present, run `python3 $TASKS_CLI epic-sync <epic-id>`.
+
+Commit: `git add .tasks/ && git commit -m "Tasks: Move #<id> to reviewing"`
 
 **IMPORTANT:** Never merge or delete any worktree until `/tasks complete`.
 
@@ -274,18 +352,20 @@ Output clickable link: `[plan.md](.tasks/2-planning/<id>/plan.md)`
 /tasks complete <id>
 ```
 
-1. **Ensure `changes.md` exists** in the task folder. If missing, generate it (frontmatter + file summary table). See [workflows.md](workflows.md) for format.
-2. If worktree exists (`.worktrees/task-<id>/`):
-   - Verify no uncommitted changes
-   - Merge feature branch into main
-   - Remove worktree
-   - Delete feature branch (if fully merged)
-3. Clean up: `rm -rf .worktrees/task-<id>/`
-4. Move to `6-complete/`
-5. Update status, add `completed` datetime (e.g., `completed: 2026-02-12 14:30 UTC`)
-6. Update INDEX.md
-7. **Epic Sync:** If task has `parent_epic`, update the epic's Children table (status and path)
-8. Stage and commit: `git add .tasks/ && git commit -m "Tasks: Complete #<id>"`
+**Run:** `python3 $TASKS_CLI complete <id>`
+
+The CLI handles the full workflow:
+1. Verifies no uncommitted changes in worktree
+2. Merges feature branch into main
+3. Removes worktree and deletes branch
+4. Moves task to `6-complete/`
+5. Updates frontmatter with `completed` datetime
+6. Rebuilds INDEX.md
+7. Commits
+
+Check `data.epic_sync_needed` and run `python3 $TASKS_CLI epic-sync <epic-id>` if present, then commit the epic update.
+
+Check `warnings` for any issues (e.g., missing revw.md).
 
 ---
 
@@ -295,12 +375,11 @@ Output clickable link: `[plan.md](.tasks/2-planning/<id>/plan.md)`
 /tasks reject <id> [reason]
 ```
 
-1. Determine rejection reason (required)
-2. Move to `7-rejected/`
-3. Update status, add `rejected_reason`
-4. Update INDEX.md
-5. **Epic Sync:** If task has `parent_epic`, update the epic's Children table (status and path)
-6. Stage and commit: `git add .tasks/ && git commit -m "Tasks: Reject #<id>"`
+**Run:** `python3 $TASKS_CLI reject <id> <reason>`
+
+If no reason is provided by the user, ask for one before running the CLI — a reason is always required.
+
+Check `data.epic_sync_needed` and run `python3 $TASKS_CLI epic-sync <epic-id>` + commit if present.
 
 ---
 
@@ -310,13 +389,11 @@ Output clickable link: `[plan.md](.tasks/2-planning/<id>/plan.md)`
 /tasks consolidate <id> into <target-id>
 ```
 
-1. Move task to `8-consolidated/`
-2. Update status, add `consolidated_into`
-3. Preserve ALL original content
-4. Update target task with consolidated context
-5. Update INDEX.md
-6. **Epic Sync:** If task has `parent_epic`, update the epic's Children table (status and path)
-7. Stage and commit: `git add .tasks/ && git commit -m "Tasks: Consolidate #<id> into #<target-id>"`
+**Run:** `python3 $TASKS_CLI consolidate <id> <target-id>`
+
+The CLI moves the source task, updates frontmatter, preserves original content, rebuilds INDEX.md, and commits.
+
+Check `data.epic_sync_needed` and run `python3 $TASKS_CLI epic-sync <epic-id>` + commit if present.
 
 ---
 
@@ -362,17 +439,78 @@ Removes the Tasks Viewer VS Code extension from the local VS Code installation.
 /tasks audit
 ```
 
-Scan all tasks and INDEX.md for:
-1. Structural integrity
-2. Frontmatter compliance
-3. INDEX.md sync
-4. Title/heading consistency
-5. Possibly obsolete tasks
-6. Dependency integrity
+**Step 1 — Structural checks (CLI):**
 
-Write report to `.temp/tasks-audit-<datetime>.md`.
+**Run:** `python3 $TASKS_CLI audit`
 
-**Reference:** See [workflows.md](workflows.md) for detailed audit criteria.
+The CLI returns JSON with `data.errors`, `data.warnings`, and `data.summary`. Format these into a readable report.
+
+**Step 2 — Obsolete task detection (LLM):**
+
+For each open task (inbox, planning, plan-review), compare against completed tasks:
+- Does a completed task's description overlap significantly with this open task?
+- Does a completed task explicitly address the same problem?
+- Has the area this task targets been redesigned or replaced?
+
+This requires LLM judgment and cannot be done by the CLI.
+
+**Output:** Write the combined report (CLI checks + obsolete analysis) to `.temp/tasks-audit-<datetime>.md`.
+
+---
+
+## Critic Gate
+
+**MANDATORY:** Before every status transition, launch a **critic subagent** with a clean context window to review the work completed in the current phase. The critic catches gaps, inconsistencies, and contradictions that the working agent has gone blind to.
+
+**When to run:** After the user requests a transition (e.g., `/tasks plan`, `/tasks review`, `/tasks complete`) but **before** executing the CLI transition command. The critic must pass before the transition proceeds.
+
+**How to run:** Use the Agent tool to launch a fresh subagent with:
+- A clear description of what phase just completed and what to verify
+- The relevant files to read (task.yaml, spec.md, plan.md, impl.md, revw.md)
+- Explicit instructions to look for gaps, inconsistencies, and contradictions
+- Instructions to return a structured verdict
+
+**Critic prompt template:**
+
+```
+You are a critic reviewing task #<id> before transitioning from <current-phase> to <next-phase>.
+
+Read these files:
+- .tasks/<status-dir>/<id>/task.yaml (metadata)
+- .tasks/<status-dir>/<id>/spec.md (specification)
+- .tasks/<status-dir>/<id>/plan.md (if exists)
+- .tasks/<status-dir>/<id>/impl.md (if exists)
+- .tasks/<status-dir>/<id>/revw.md (if exists)
+
+Check for:
+1. GAPS: Are there acceptance criteria with no corresponding change? Changes with no acceptance criterion? Scope items with no implementation?
+2. INCONSISTENCIES: Do the spec, plan, and implementation agree on what was done? Are there contradictions between sections?
+3. CONTRADICTIONS: Do constraints conflict with changes? Does the plan contradict the spec? Do completed changes match what was planned?
+4. COMPLETENESS: Has every item in the plan/spec been addressed? Are there TODO/FIXME/placeholder items left?
+
+Return a JSON verdict:
+{
+  "pass": true/false,
+  "findings": [
+    {"severity": "error|warning", "description": "...", "location": "file:section"}
+  ],
+  "summary": "one-line overall assessment"
+}
+```
+
+**Phase-specific checks:**
+
+| Transition | Critic focus |
+|------------|-------------|
+| speccing → planning | Spec completeness: all 6 sections filled, no ambiguity, acceptance criteria are externally verifiable, changes are fully specified |
+| planning → plan-review | Plan covers every change in spec, sequencing is logical, test plan addresses every acceptance criterion |
+| plan-review → implementing | Plan is actionable, no open questions, dependencies are ordered correctly |
+| implementing → reviewing | Every planned change is implemented, no unplanned changes snuck in, acceptance criteria are met, no leftover TODOs |
+| reviewing → complete | All review feedback addressed, revw.md is accurate, no regressions |
+
+**On failure:** Report the findings to the user. Do NOT proceed with the transition. The user decides whether to fix the issues or override.
+
+**On pass with warnings:** Report the warnings to the user alongside the transition. Proceed only if the user confirms.
 
 ---
 
@@ -384,9 +522,9 @@ Write report to `.temp/tasks-audit-<datetime>.md`.
 - `/tasks spec` → move to speccing (or back-transition), run solicitation, stop. Do NOT proceed to plan.
 - `/tasks plan` → move to planning, create plan, commit, stop. Do NOT proceed to plan-review/implement.
 - `/tasks plan-review` → move to plan-review, commit, stop. Do NOT proceed to implement.
-- `/tasks implement` → move to implementing, create branch, commit, then **proceed directly into implementation** using `plan.md`. Do NOT stop and wait.
+- `/tasks implement` → move to implementing, create branch, commit, then **proceed directly into implementation** using `plan.md`. When implementation is done, **STOP and report back**. Do NOT transition to reviewing.
 
-The user decides when to advance between phases. Always wait for their instruction — except for `/tasks implement`, which flows directly into coding.
+The user decides when to advance between phases. Always wait for their explicit instruction. The `/tasks implement` exception only applies to starting the coding work — it does NOT grant permission to transition to reviewing or complete afterward.
 
 **No phase skipping:** The lifecycle is strictly sequential: inbox → speccing → planning → plan-review → implementing → reviewing → complete. Never skip a phase and never suggest skipping one. For example, after `/tasks add`, do not offer to go "straight to planning" — the next step is always speccing.
 
@@ -396,6 +534,7 @@ The user decides when to advance between phases. Always wait for their instructi
 
 ## Quick Reference
 
+- **CLI tool:** `python3 $TASKS_CLI <command>` — handles all mechanical file/git operations with JSON output
 - **Task numbering:** Permanent IDs, never reused. Find highest + 1.
 - **Sort order:** All INDEX.md sections are sorted by task ID **descending** (newest first). Maintain this when adding, moving, or reordering tasks.
 - **Commit every transition:** Use `Tasks:` prefix
@@ -403,10 +542,12 @@ The user decides when to advance between phases. Always wait for their instructi
 - **Worktree lifecycle:** Created by `/tasks implement`, removed by `/tasks complete`
 - **Preserve content:** Never lose original content when consolidating/rejecting
 - **Branch isolation:** Feature branches only modify their associated task; new tasks go on main
-- **Epic Sync (mandatory):** Every status transition for a task with `parent_epic` MUST update the epic's Children table (status and path) in the same commit. This is built into every command's steps — never skip it.
-- **Real timestamps only:** NEVER invent or hardcode datetime values. Always run `date -u '+%Y-%m-%d %H:%M UTC'` to get the actual current time for `created`, `completed`, and all other datetime fields.
+- **Epic Sync (mandatory):** When `data.epic_sync_needed` is present in CLI output, run `python3 $TASKS_CLI epic-sync <id>` and commit the result. Never skip this.
+- **Real timestamps only:** The CLI handles timestamps automatically. When writing files manually (e.g., plan.md), run `date -u '+%Y-%m-%d %H:%M UTC'` for actual time — never invent dates.
+
+**Task files:** `task.yaml` (metadata) + `spec.md` (specification) + `plan.md` (execution plan) + `impl.md` (implementation iterations) + `revw.md` (review notes)
 
 **Full documentation:**
-- [schemas.md](schemas.md) - Task/plan formats and templates
+- [schemas.md](schemas.md) - File schemas and templates (task.yaml, spec.md, plan.md, impl.md, revw.md)
 - [workflows.md](workflows.md) - Detailed command workflows
 - [reference.md](reference.md) - Best practices and lifecycles

@@ -15,7 +15,6 @@ type TaskData = {
   readonly priority: string;
   readonly priorityIcon: string;
   readonly relPath: string;
-  readonly repos: string;
 };
 
 const STATUS_META: Readonly<Record<string, { readonly icon: string; readonly label: string }>> = {
@@ -33,14 +32,6 @@ const PRIORITY_META: Readonly<Record<string, { readonly icon: string; readonly l
   'low': { icon: '\u{1F535}', label: 'Low' },
 };
 
-const REPO_SHORT: Readonly<Record<string, string>> = {
-  'workspace': 'workspace',
-  'sdd-core': 'core',
-  'sdd-fullstack-typescript-techpack': 'techpack',
-  'sdd-vscode-extension': 'vscode',
-  '.github': '.github',
-};
-
 const PRIORITY_ORDER: ReadonlyArray<{ readonly key: string; readonly icon: string; readonly label: string }> = [
   { key: 'high', icon: '\u{1F534}', label: 'High' },
   { key: 'medium', icon: '\u{1F7E1}', label: 'Medium' },
@@ -52,12 +43,6 @@ const SKIP_SECTIONS: ReadonlySet<string> = new Set(['Complete', 'Rejected', 'Con
 const TASK_RE = /^- \[#(\d+)\]\(([^)]+)\):?\s*(.*)$/;
 const SECTION_RE = /^## (.+)$/;
 const PRIORITY_RE = /^### (High|Medium|Low|Unprioritized)/i;
-
-const renderRepoTags = (repos: string): string => {
-  if (repos === '\u2014') return '';
-  const tags = repos.split(', ').map(r => `<span class="repo-tag">${escapeHtml(r)}</span>`).join('');
-  return `<div class="task-tags">${tags}</div>`;
-};
 
 const renderTask = (t: TaskData, extra: string = '', showToggle: boolean = false): string => {
   const escapedPath = escapeHtml(t.relPath);
@@ -71,7 +56,6 @@ const renderTask = (t: TaskData, extra: string = '', showToggle: boolean = false
         <span class="task-title">${escapedTitle}</span>
         ${extra}
       </div>
-      ${renderRepoTags(t.repos)}
     </div>
   </div>`;
 };
@@ -94,7 +78,6 @@ const renderEpicGroup = (epic: TaskData, children: ReadonlyArray<TaskData>): str
           <span class="task-title">${escapedTitle}</span>
           ${childCount}
         </div>
-        ${renderRepoTags(epic.repos)}
       </div>
     </div>
     ${hasChildren ? `<div class="epic-children" data-parent="${epic.id}">${childRows}</div>` : ''}
@@ -526,15 +509,12 @@ export class BacklogViewProvider implements vscode.WebviewViewProvider {
         const [, id, relDir, rawTitle] = taskMatch;
         const title = rawTitle.replace(/\s*✓.*$/, '').trim();
         // INDEX.md links to either a directory (0-inbox/67/) or a file (2-planning/67/plan.md)
-        // Normalize to always point at task.md inside the task directory
+        // Normalize to the task directory
         const taskDirFromLink = relDir.endsWith('/') ? relDir : relDir.replace(/\/[^/]+\.md$/, '/');
-        const relPath = `${taskDirFromLink}task.md`;
-        const taskFilePath = path.join(this.tasksDir, relPath);
-        const frontmatter = readFrontmatter(taskFilePath);
+        const relPath = `${taskDirFromLink}spec.md`;
+        const taskDirPath = path.join(this.tasksDir, taskDirFromLink);
+        const frontmatter = readTaskMeta(taskDirPath);
         const rawPriority = frontmatter.priority ?? state.currentPriority;
-        const repos = frontmatter.repos.length > 0
-          ? frontmatter.repos.map(r => REPO_SHORT[r] ?? r).join(', ')
-          : '\u2014';
 
         const task: TaskData = {
           id,
@@ -546,7 +526,6 @@ export class BacklogViewProvider implements vscode.WebviewViewProvider {
           priority: rawPriority ?? '',
           priorityIcon: '',
           relPath,
-          repos,
         };
         return { ...state, tasks: [...state.tasks, task] };
       }
@@ -571,31 +550,37 @@ export class BacklogViewProvider implements vscode.WebviewViewProvider {
   }
 }
 
-const readFrontmatter = (filePath: string): { readonly priority?: string; readonly repos: ReadonlyArray<string>; readonly type?: TaskType; readonly parentEpic?: string } => {
+const readTaskMeta = (taskDir: string): { readonly priority?: string; readonly type?: TaskType; readonly parentEpic?: string } => {
+  // Try task.yaml first (new format), fall back to task.md frontmatter (legacy)
+  const yamlPath = path.join(taskDir, 'task.yaml');
+  const mdPath = path.join(taskDir, 'task.md');
+
+  let content: string;
   try {
-    const content = fs.readFileSync(filePath, 'utf8');
-    const fmMatch = content.match(/^---\n([\s\S]*?)\n---/);
-    if (!fmMatch) return { repos: [] };
-    const fm = fmMatch[1];
-
-    const priorityMatch = fm.match(/priority:\s*(\w+)/);
-    const priority = priorityMatch?.[1] === 'null' ? undefined : priorityMatch?.[1];
-
-    const typeMatch = fm.match(/type:\s*(\w+)/);
-    const type: TaskType | undefined = typeMatch?.[1] === 'epic' ? 'epic' : undefined;
-
-    const parentEpicMatch = fm.match(/parent_epic:\s*(\d+)/);
-    const parentEpic = parentEpicMatch?.[1];
-
-    const reposMatch = fm.match(/repos:\s*\[([^\]]*)\]/);
-    const repos = reposMatch
-      ? reposMatch[1].split(',').map(r => r.trim().replace(/['"]/g, '')).filter(Boolean)
-      : [];
-
-    return { priority, repos, type, parentEpic };
+    if (fs.existsSync(yamlPath)) {
+      content = fs.readFileSync(yamlPath, 'utf8');
+    } else if (fs.existsSync(mdPath)) {
+      // Legacy: extract frontmatter from task.md
+      const mdContent = fs.readFileSync(mdPath, 'utf8');
+      const fmMatch = mdContent.match(/^---\n([\s\S]*?)\n---/);
+      content = fmMatch ? fmMatch[1] : '';
+    } else {
+      return {};
+    }
   } catch {
-    return { repos: [] };
+    return {};
   }
+
+  const priorityMatch = content.match(/priority:\s*(\w+)/);
+  const priority = priorityMatch?.[1] === 'null' ? undefined : priorityMatch?.[1];
+
+  const typeMatch = content.match(/type:\s*(\w+)/);
+  const type: TaskType | undefined = typeMatch?.[1] === 'epic' ? 'epic' : undefined;
+
+  const parentEpicMatch = content.match(/parent_epic:\s*(\d+)/);
+  const parentEpic = parentEpicMatch?.[1];
+
+  return { priority, type, parentEpic };
 };
 
 const escapeHtml = (text: string): string =>
