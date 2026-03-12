@@ -52,10 +52,10 @@ export class TaskDetailPanel {
   private constructor(
     private readonly panel: vscode.WebviewPanel,
     private readonly tasksDir: string,
-    private readonly taskRelPath: string,
+    private readonly taskId: string,
   ) {
     this.panel.onDidDispose(() => {
-      TaskDetailPanel.panels.delete(taskRelPath);
+      TaskDetailPanel.panels.delete(taskId);
     });
 
     this.panel.iconPath = {
@@ -85,20 +85,20 @@ export class TaskDetailPanel {
     }
   }
 
-  static restore(panel: vscode.WebviewPanel, tasksDir: string, taskRelPath: string): void {
-    TaskDetailPanel.panels.set(taskRelPath, new TaskDetailPanel(panel, tasksDir, taskRelPath));
+  static restore(panel: vscode.WebviewPanel, tasksDir: string, taskId: string): void {
+    TaskDetailPanel.panels.set(taskId, new TaskDetailPanel(panel, tasksDir, taskId));
   }
 
   static show(tasksDir: string, taskRelPath: string): void {
-    const existing = TaskDetailPanel.panels.get(taskRelPath);
+    const taskDir = path.dirname(taskRelPath);
+    const taskId = path.basename(taskDir);
+
+    const existing = TaskDetailPanel.panels.get(taskId);
     if (existing) {
       existing.panel.reveal();
       existing.update();
       return;
     }
-
-    const taskDir = path.dirname(taskRelPath);
-    const taskId = path.basename(taskDir);
 
     const panel = vscode.window.createWebviewPanel(
       'taskDetail',
@@ -107,7 +107,22 @@ export class TaskDetailPanel {
       { enableScripts: true, retainContextWhenHidden: true },
     );
 
-    TaskDetailPanel.panels.set(taskRelPath, new TaskDetailPanel(panel, tasksDir, taskRelPath));
+    TaskDetailPanel.panels.set(taskId, new TaskDetailPanel(panel, tasksDir, taskId));
+  }
+
+  /** Find the task directory by scanning status dirs for the task ID. */
+  private findTaskDir(): string | null {
+    const statusDirs = [
+      '0-inbox', '1-speccing', '2-planning', '3-plan-review',
+      '4-implementing', '5-reviewing', '6-complete', '7-rejected', '8-consolidated',
+    ];
+    for (const dir of statusDirs) {
+      const candidate = path.join(this.tasksDir, dir, this.taskId);
+      if (fs.existsSync(candidate)) {
+        return candidate;
+      }
+    }
+    return null;
   }
 
   private update(): void {
@@ -115,7 +130,10 @@ export class TaskDetailPanel {
   }
 
   private getHtml(): string {
-    const taskDir = path.join(this.tasksDir, path.dirname(this.taskRelPath));
+    const taskDir = this.findTaskDir();
+    if (!taskDir) {
+      return `<!DOCTYPE html><html><body><p>Task #${escapeHtml(this.taskId)} not found.</p></body></html>`;
+    }
 
     // Read metadata from task.yaml (new) or task.md frontmatter (legacy)
     const yamlPath = path.join(taskDir, 'task.yaml');
@@ -427,7 +445,7 @@ export class TaskDetailPanel {
 
   <script>
     const vscode = acquireVsCodeApi();
-    vscode.setState(${JSON.stringify({ tasksDir: this.tasksDir, taskRelPath: this.taskRelPath })});
+    vscode.setState(${JSON.stringify({ tasksDir: this.tasksDir, taskId: this.taskId })});
 
     document.querySelectorAll('.tab').forEach(tab => {
       tab.addEventListener('click', (e) => {

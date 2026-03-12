@@ -14,9 +14,10 @@ export const activate = (context: vscode.ExtensionContext): void => {
     vscode.window.registerWebviewViewProvider('tasksBacklog', provider),
     vscode.commands.registerCommand('tasksViewer.refresh', () => provider.refresh()),
     vscode.window.registerWebviewPanelSerializer('taskDetail', {
-      deserializeWebviewPanel: (panel: vscode.WebviewPanel, state: { readonly tasksDir: string; readonly taskRelPath: string }) => {
-        if (state?.tasksDir && state?.taskRelPath) {
-          TaskDetailPanel.restore(panel, state.tasksDir, state.taskRelPath);
+      deserializeWebviewPanel: (panel: vscode.WebviewPanel, state: { readonly tasksDir: string; readonly taskId?: string; readonly taskRelPath?: string }) => {
+        const taskId = state?.taskId ?? (state?.taskRelPath ? path.basename(path.dirname(state.taskRelPath)) : undefined);
+        if (state?.tasksDir && taskId) {
+          TaskDetailPanel.restore(panel, state.tasksDir, taskId);
         } else {
           panel.dispose();
         }
