@@ -23,12 +23,12 @@ plugin/
 
 When preparing a release:
 
-1. **Bump versions** in all three locations:
+1. **Bump plugin version** in both locations (these must stay in sync):
    - `.claude-plugin/marketplace.json` — `plugins[0].version`
    - `plugin/.claude-plugin/plugin.json` — `version`
-   - `plugin/skills/tasks/viewer/package.json` — `version`
-2. **Add a changelog entry** in `CHANGELOG.md` under the new version heading.
-3. **Commit** the version bumps and changelog together.
+2. **Bump viewer version** in `plugin/skills/tasks/viewer/package.json` — only if the viewer itself changed.
+3. **Add a changelog entry** in `CHANGELOG.md` under the new version heading.
+4. **Commit** the version bumps and changelog together.
 
 ## Testing the CLI
 
