@@ -12,6 +12,7 @@ from .cmd_add import cmd_add, cmd_add_epic, cmd_add_to_epic
 from .cmd_lifecycle import cmd_complete, cmd_consolidate, cmd_prioritize, cmd_reject, cmd_transition
 from .cmd_query import cmd_audit, cmd_epic_sync, cmd_list
 from .cmd_review import cmd_review
+from .cmd_viewer import cmd_install_viewer, cmd_uninstall_viewer
 from .index import cmd_sync_index
 
 
@@ -77,6 +78,12 @@ def main():
     p_co.add_argument("id", type=int)
     p_co.add_argument("into", type=int, help="Target task ID")
 
+    # install-viewer
+    sub.add_parser("install-viewer", help="Build and install the VS Code viewer extension")
+
+    # uninstall-viewer
+    sub.add_parser("uninstall-viewer", help="Remove the VS Code viewer extension")
+
     args = parser.parse_args()
 
     set_current_command(args.command)
@@ -95,6 +102,8 @@ def main():
         "epic-sync": cmd_epic_sync,
         "reject": cmd_reject,
         "consolidate": cmd_consolidate,
+        "install-viewer": cmd_install_viewer,
+        "uninstall-viewer": cmd_uninstall_viewer,
     }
 
     handler = dispatch.get(args.command)

@@ -400,20 +400,16 @@ Check `data.epic_sync_needed` and run `python3 $TASKS_CLI epic-sync <epic-id>` +
 ### Install Viewer
 
 ```
-/tasks install-viewer [path]
+/tasks install-viewer
 ```
 
-Generates and installs the Tasks Viewer VS Code extension — a sidebar webview that displays the `.tasks/` backlog with clickable tasks that open rendered detail panels.
+Builds and installs the Tasks Viewer VS Code extension — a sidebar webview that displays the `.tasks/` backlog with clickable tasks that open rendered detail panels.
 
-**Source template:** [viewer/](viewer/) contains the extension source files.
+```bash
+python3 "$TASKS_CLI" install-viewer
+```
 
-1. **Ask for target directory** if `[path]` not provided. Default: `tasks-viewer/` in the project root.
-2. **Copy** all files from the `viewer/` template directory to the target (including dotfiles)
-3. **Build and install:**
-   ```bash
-   cd <target> && chmod +x install.sh && ./install.sh
-   ```
-5. **Report result** to the user. Remind them to reload VS Code.
+Report the result to the user. Remind them to reload VS Code.
 
 ---
 
@@ -425,11 +421,11 @@ Generates and installs the Tasks Viewer VS Code extension — a sidebar webview 
 
 Removes the Tasks Viewer VS Code extension from the local VS Code installation.
 
-1. **Remove** all matching extension directories:
-   ```bash
-   rm -rf ~/.vscode/extensions/local.tasks-viewer-*
-   ```
-2. **Report result** to the user. Remind them to reload VS Code.
+```bash
+python3 "$TASKS_CLI" uninstall-viewer
+```
+
+Report the result to the user. Remind them to reload VS Code.
 
 ---
 
