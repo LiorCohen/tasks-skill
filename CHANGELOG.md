@@ -2,6 +2,14 @@
 
 All notable changes to the tasks-skill plugin are documented here.
 
+## [3.0.0] - 2026-03-13
+
+### Breaking Changes
+
+- **`items/` subdirectory**: All task status directories (0-inbox, 1-speccing, etc.) now live under `.tasks/items/` instead of directly under `.tasks/`. INDEX.md stays at `.tasks/INDEX.md` with updated links. Existing `.tasks/` directories need their status folders moved into `items/`.
+
+---
+
 ## [2.2.0] - 2026-03-12
 
 ### Added
