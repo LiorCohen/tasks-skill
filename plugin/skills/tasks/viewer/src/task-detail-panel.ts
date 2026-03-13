@@ -117,7 +117,7 @@ export class TaskDetailPanel {
       '4-implementing', '5-reviewing', '6-complete', '7-rejected', '8-consolidated',
     ];
     for (const dir of statusDirs) {
-      const candidate = path.join(this.tasksDir, dir, this.taskId);
+      const candidate = path.join(this.tasksDir, 'items', dir, this.taskId);
       if (fs.existsSync(candidate)) {
         return candidate;
       }

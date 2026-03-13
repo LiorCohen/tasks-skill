@@ -11,6 +11,7 @@ from .helpers import (
     get_repo_root,
     get_utc_now,
     git_add_and_commit,
+    items_dir,
 )
 from .index import build_index
 from .io import read_meta, read_spec, write_meta, write_spec
@@ -25,7 +26,7 @@ def cmd_add(args):
 
     description = " ".join(args.description)
     task_id = get_next_id(tasks_root)
-    task_dir = tasks_root / "0-inbox" / str(task_id)
+    task_dir = items_dir(tasks_root) / "0-inbox" / str(task_id)
     task_dir.mkdir(parents=True)
 
     now = get_utc_now()
@@ -67,7 +68,7 @@ def cmd_add_epic(args):
 
     description = " ".join(args.description)
     task_id = get_next_id(tasks_root)
-    task_dir = tasks_root / "0-inbox" / str(task_id)
+    task_dir = items_dir(tasks_root) / "0-inbox" / str(task_id)
     task_dir.mkdir(parents=True)
 
     now = get_utc_now()
@@ -124,7 +125,7 @@ def cmd_add_to_epic(args):
         error_exit(f"Task #{epic_id} is not an epic.")
 
     task_id = get_next_id(tasks_root)
-    task_dir = tasks_root / "0-inbox" / str(task_id)
+    task_dir = items_dir(tasks_root) / "0-inbox" / str(task_id)
     task_dir.mkdir(parents=True)
 
     now = get_utc_now()

@@ -27,7 +27,7 @@ Skip empty sections. Omit Completed, Rejected, and Consolidated sections (archiv
 User: /tasks 19
 ```
 
-**Action:** Read `<status-dir>/19/task.yaml` for metadata and `<status-dir>/19/spec.md` for the full specification.
+**Action:** Read `items/<status-dir>/19/task.yaml` for metadata and `items/<status-dir>/19/spec.md` for the full specification.
 
 ---
 
@@ -182,7 +182,7 @@ If any check fails, refuse with details.
 ```
 Task #19 moved to planning status.
 
-Plan: [plan.md](.tasks/2-planning/19/plan.md)
+Plan: [plan.md](.tasks/items/2-planning/19/plan.md)
 ```
 
 **Phase 2 — Build execution plan (only after commit completes, LLM):**
@@ -272,9 +272,9 @@ You are a devil's advocate reviewer for task #<id>, iteration <N>.
 ASSUME the implementation is wrong. Your job is to find what's broken.
 
 Read these files:
-- .tasks/<status-dir>/<id>/spec.md
-- .tasks/<status-dir>/<id>/plan.md
-- .tasks/<status-dir>/<id>/impl.md
+- .tasks/items/<status-dir>/<id>/spec.md
+- .tasks/items/<status-dir>/<id>/plan.md
+- .tasks/items/<status-dir>/<id>/impl.md
 
 Then examine the actual code changes in the worktree at .worktrees/task-<id>/.
 

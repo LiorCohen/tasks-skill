@@ -15,6 +15,7 @@ from .helpers import (
     get_utc_now,
     git,
     git_add_and_commit,
+    items_dir,
     slugify,
 )
 from .index import build_index
@@ -40,7 +41,7 @@ def cmd_transition(args):
         return
 
     # Move folder
-    target_dir = tasks_root / STATUS_DIRS[target_status] / str(task_id)
+    target_dir = items_dir(tasks_root) / STATUS_DIRS[target_status] / str(task_id)
     target_dir.parent.mkdir(parents=True, exist_ok=True)
     shutil.move(str(task_path), str(target_dir))
 
@@ -160,7 +161,7 @@ def cmd_complete(args):
             shutil.rmtree(str(worktree_path), ignore_errors=True)
 
     # Move to complete
-    target_dir = tasks_root / STATUS_DIRS["complete"] / str(task_id)
+    target_dir = items_dir(tasks_root) / STATUS_DIRS["complete"] / str(task_id)
     target_dir.parent.mkdir(parents=True, exist_ok=True)
     shutil.move(str(task_path), str(target_dir))
 
@@ -210,7 +211,7 @@ def cmd_reject(args):
     meta = read_meta(task_path)
 
     # Move to rejected
-    target_dir = tasks_root / STATUS_DIRS["rejected"] / str(task_id)
+    target_dir = items_dir(tasks_root) / STATUS_DIRS["rejected"] / str(task_id)
     target_dir.parent.mkdir(parents=True, exist_ok=True)
     shutil.move(str(task_path), str(target_dir))
 
@@ -266,7 +267,7 @@ def cmd_consolidate(args):
     source_meta = read_meta(source_path)
 
     # Move source to consolidated
-    target_dir = tasks_root / STATUS_DIRS["consolidated"] / str(source_id)
+    target_dir = items_dir(tasks_root) / STATUS_DIRS["consolidated"] / str(source_id)
     target_dir.parent.mkdir(parents=True, exist_ok=True)
     shutil.move(str(source_path), str(target_dir))
 

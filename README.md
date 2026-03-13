@@ -98,18 +98,19 @@ Each transition is committed automatically with a `Tasks:` prefix.
 ```
 .tasks/
 ├── INDEX.md              # Backlog index
-├── 0-inbox/              # New tasks
-├── 1-speccing/           # Being specified
-├── 2-planning/           # Plan being written
-├── 3-plan-review/        # Plan review checkpoint
-├── 4-implementing/       # In progress
-├── 5-reviewing/          # Ready for review
-├── 6-complete/           # Done
-├── 7-rejected/           # Rejected
-└── 8-consolidated/       # Merged into other tasks
+└── items/                # All task folders
+    ├── 0-inbox/          # New tasks
+    ├── 1-speccing/       # Being specified
+    ├── 2-planning/       # Plan being written
+    ├── 3-plan-review/    # Plan review checkpoint
+    ├── 4-implementing/   # In progress
+    ├── 5-reviewing/      # Ready for review
+    ├── 6-complete/       # Done
+    ├── 7-rejected/       # Rejected
+    └── 8-consolidated/   # Merged into other tasks
 ```
 
-Each task is a numbered folder (e.g., `0-inbox/42/`) containing:
+Each task is a numbered folder (e.g., `items/0-inbox/42/`) containing:
 - `task.md` — Description, spec, and metadata (YAML frontmatter)
 - `plan.md` — Execution plan (created during planning)
 - `changes.md` — File change summary (generated during review)

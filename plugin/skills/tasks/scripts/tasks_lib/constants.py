@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+ITEMS_SUBDIR = "items"
+
 STATUS_DIRS = {
     "inbox": "0-inbox",
     "speccing": "1-speccing",

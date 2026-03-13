@@ -15,6 +15,7 @@ from .helpers import (
     find_task,
     find_tasks_root,
     get_effective_priority,
+    items_dir,
 )
 from .io import read_meta, read_spec, write_spec
 from .output import error_exit, output_success
@@ -83,7 +84,7 @@ def cmd_audit(args):
 
     # --- Check 1: Structural Integrity ---
     for status_dir_name in STATUS_DIRS.values():
-        dir_path = tasks_root / status_dir_name
+        dir_path = items_dir(tasks_root) / status_dir_name
         if not dir_path.is_dir():
             continue
         for entry in dir_path.iterdir():
@@ -158,7 +159,7 @@ def cmd_audit(args):
 
     # --- Check 4: Spec heading consistency ---
     for status, tid, meta in all_tasks:
-        task_dir = tasks_root / STATUS_DIRS[status] / str(tid)
+        task_dir = items_dir(tasks_root) / STATUS_DIRS[status] / str(tid)
         spec_text = read_spec(task_dir)
         if spec_text:
             title = meta.get("title", "")

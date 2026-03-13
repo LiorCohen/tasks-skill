@@ -4,8 +4,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from .constants import ACTIVE_STATUSES, ARCHIVE_STATUSES, INBOX_PRIORITIES, STATUS_DIRS
-from .helpers import collect_all_tasks, find_tasks_root, get_effective_priority
+from .constants import ACTIVE_STATUSES, ARCHIVE_STATUSES, INBOX_PRIORITIES, ITEMS_SUBDIR, STATUS_DIRS
+from .helpers import collect_all_tasks, find_tasks_root, get_effective_priority, items_dir
 from .output import output_success
 
 
@@ -28,11 +28,11 @@ def build_index(tasks_root: Path) -> str:
             title = meta.get("title", f"Task {tid}")
             dir_name = STATUS_DIRS[status]
             # Planning tasks link to plan.md if it exists
-            plan_path = tasks_root / dir_name / str(tid) / "plan.md"
+            plan_path = items_dir(tasks_root) / dir_name / str(tid) / "plan.md"
             if status in ("planning", "plan-review") and plan_path.is_file():
-                sections.append(f"- [#{tid}]({dir_name}/{tid}/plan.md): {title}")
+                sections.append(f"- [#{tid}]({ITEMS_SUBDIR}/{dir_name}/{tid}/plan.md): {title}")
             else:
-                sections.append(f"- [#{tid}]({dir_name}/{tid}/): {title}")
+                sections.append(f"- [#{tid}]({ITEMS_SUBDIR}/{dir_name}/{tid}/): {title}")
 
     # Inbox grouped by priority
     inbox_tasks = [(tid, m) for s, tid, m in all_tasks if s == "inbox"]
@@ -56,7 +56,7 @@ def build_index(tasks_root: Path) -> str:
             sections.append(f"### {pri.title()} Priority\n")
             for tid, meta in pri_tasks:
                 title = meta.get("title", f"Task {tid}")
-                sections.append(f"- [#{tid}](0-inbox/{tid}/): {title}")
+                sections.append(f"- [#{tid}]({ITEMS_SUBDIR}/0-inbox/{tid}/): {title}")
             sections.append("")
 
         unpri = by_priority.get(None, [])
@@ -65,7 +65,7 @@ def build_index(tasks_root: Path) -> str:
             sections.append("### Unprioritized\n")
             for tid, meta in unpri:
                 title = meta.get("title", f"Task {tid}")
-                sections.append(f"- [#{tid}](0-inbox/{tid}/): {title}")
+                sections.append(f"- [#{tid}]({ITEMS_SUBDIR}/0-inbox/{tid}/): {title}")
             sections.append("")
 
     # Archive statuses
@@ -83,16 +83,16 @@ def build_index(tasks_root: Path) -> str:
                 completed = meta.get("completed", "")
                 date_part = completed.split(" ")[0] if completed else ""
                 suffix = f" ✓ ({date_part})" if date_part else " ✓"
-                sections.append(f"- [#{tid}]({dir_name}/{tid}/): {title}{suffix}")
+                sections.append(f"- [#{tid}]({ITEMS_SUBDIR}/{dir_name}/{tid}/): {title}{suffix}")
             elif status == "rejected":
                 reason = meta.get("rejected_reason", "")
                 suffix = f" — {reason}" if reason else ""
-                sections.append(f"- [#{tid}]({dir_name}/{tid}/): {title}{suffix}")
+                sections.append(f"- [#{tid}]({ITEMS_SUBDIR}/{dir_name}/{tid}/): {title}{suffix}")
             elif status == "consolidated":
                 target = meta.get("consolidated_into", "?")
-                sections.append(f"- [#{tid}]({dir_name}/{tid}/) → #{target}")
+                sections.append(f"- [#{tid}]({ITEMS_SUBDIR}/{dir_name}/{tid}/) → #{target}")
             else:
-                sections.append(f"- [#{tid}]({dir_name}/{tid}/): {title}")
+                sections.append(f"- [#{tid}]({ITEMS_SUBDIR}/{dir_name}/{tid}/): {title}")
 
     return "\n".join(sections) + "\n"
 

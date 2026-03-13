@@ -526,31 +526,31 @@ Active tasks (planning through reviewing) have their own top-level sections. Inb
 
 ## Speccing
 
-- [#63](1-speccing/63/): New feature idea
+- [#63](items/1-speccing/63/): New feature idea
 
 ---
 
 ## Planning
 
-- [#19](2-planning/19/plan.md): Task management skill
+- [#19](items/2-planning/19/plan.md): Task management skill
 
 ---
 
 ## Plan Review
 
-- [#20](3-plan-review/20/): Plugin installation debugging
+- [#20](items/3-plan-review/20/): Plugin installation debugging
 
 ---
 
 ## Implementing
 
-- [#60](4-implementing/60/): Standardize TypeScript imports
+- [#60](items/4-implementing/60/): Standardize TypeScript imports
 
 ---
 
 ## Reviewing
 
-- [#55](5-reviewing/55/): Split CHANGELOG.md
+- [#55](items/5-reviewing/55/): Split CHANGELOG.md
 
 ---
 
@@ -558,37 +558,37 @@ Active tasks (planning through reviewing) have their own top-level sections. Inb
 
 ### High Priority
 
-- [#59](0-inbox/59/): Audit and update agents
+- [#59](items/0-inbox/59/): Audit and update agents
 
 ### Medium Priority
 
-- [#10](0-inbox/10/): Missing /sdd-help command
+- [#10](items/0-inbox/10/): Missing /sdd-help command
 
 ### Low Priority
 
-- [#3](0-inbox/3/): Docs missing: CMDO Guide
+- [#3](items/0-inbox/3/): Docs missing: CMDO Guide
 
 ### Unprioritized
 
-- [#64](0-inbox/64/): Another idea
+- [#64](items/0-inbox/64/): Another idea
 
 ---
 
 ## Complete
 
-- [#62](6-complete/62/): Unified CLI system ✓ (2026-01-30)
+- [#62](items/6-complete/62/): Unified CLI system ✓ (2026-01-30)
 
 ---
 
 ## Rejected
 
-- [#5](7-rejected/5/): Out of scope feature
+- [#5](items/7-rejected/5/): Out of scope feature
 
 ---
 
 ## Consolidated
 
-- [#28](8-consolidated/28/) → #27
+- [#28](items/8-consolidated/28/) → #27
 ```
 
 **Note:** Links point to task folders. Priority is determined by the `priority` field in task.yaml. Priority sub-sections only appear under Inbox.

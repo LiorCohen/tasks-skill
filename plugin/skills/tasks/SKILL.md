@@ -35,15 +35,16 @@ TASKS_CLI="${CLAUDE_SKILL_DIR}/scripts/tasks_cli.py"
 ```
 .tasks/
 ├── INDEX.md              # Index file - task numbers, titles, links
-├── 0-inbox/              # Open tasks (not yet started)
-├── 1-speccing/           # Spec being refined (interactive solicitation)
-├── 2-planning/           # Plan being created
-├── 3-plan-review/        # Plan review checkpoint
-├── 4-implementing/       # Currently being worked on
-├── 5-reviewing/          # Implementation complete, under review
-├── 6-complete/           # Done
-├── 7-rejected/           # Rejected or irrelevant
-└── 8-consolidated/       # Consolidated into other tasks
+└── items/                # All task folders live here
+    ├── 0-inbox/          # Open tasks (not yet started)
+    ├── 1-speccing/       # Spec being refined (interactive solicitation)
+    ├── 2-planning/       # Plan being created
+    ├── 3-plan-review/    # Plan review checkpoint
+    ├── 4-implementing/   # Currently being worked on
+    ├── 5-reviewing/      # Implementation complete, under review
+    ├── 6-complete/       # Done
+    ├── 7-rejected/       # Rejected or irrelevant
+    └── 8-consolidated/   # Consolidated into other tasks
 ```
 
 **Note:** `.gitkeep` files ensure empty directories are tracked in git. Do not delete these files.
@@ -124,7 +125,7 @@ Parse the JSON output and render a markdown table with columns: `Status`, `Prior
 - `✅ Plan Review`
 - `🔨 Implementing`
 - `🔍 Reviewing`
-- `📥 Inbox` (for tasks in 0-inbox/)
+- `📥 Inbox` (for tasks in items/0-inbox/)
 
 **Priority column values:**
 - `🔴 High`
@@ -148,7 +149,7 @@ End with a summary line:
 /tasks 19
 ```
 
-Read `<status-dir>/19/task.yaml` for metadata and `<status-dir>/19/spec.md` for the full specification.
+Read `items/<status-dir>/19/task.yaml` for metadata and `items/<status-dir>/19/spec.md` for the full specification.
 
 ---
 
@@ -256,7 +257,7 @@ If any check fails, refuse with details.
 5. Research the codebase and write the execution plan in `plan.md` — sequencing, step-by-step implementation order, and test plan for the changes already defined in the spec. Do not redefine what changes to make; that belongs in the spec.
 6. If planning reveals spec gaps (missing files, unclear changes), update `spec.md` directly (never plan.md) and commit as a planning-phase spec update. This should be rare — a well-specced task needs no planning-phase amendments.
 
-Output clickable link: `[plan.md](.tasks/2-planning/<id>/plan.md)`
+Output clickable link: `[plan.md](.tasks/items/2-planning/<id>/plan.md)`
 
 ---
 
@@ -322,9 +323,9 @@ You are a devil's advocate reviewer for task #<id>, iteration <N>.
 ASSUME the implementation is wrong. Your job is to find what's broken.
 
 Read these files:
-- .tasks/<status-dir>/<id>/spec.md (the specification)
-- .tasks/<status-dir>/<id>/plan.md (the execution plan)
-- .tasks/<status-dir>/<id>/impl.md (the implementation report)
+- .tasks/items/<status-dir>/<id>/spec.md (the specification)
+- .tasks/items/<status-dir>/<id>/plan.md (the execution plan)
+- .tasks/items/<status-dir>/<id>/impl.md (the implementation report)
 
 Then examine the actual code changes in the worktree at .worktrees/task-<id>/.
 
@@ -503,11 +504,11 @@ This requires LLM judgment and cannot be done by the CLI.
 You are a critic reviewing task #<id> before transitioning from <current-phase> to <next-phase>.
 
 Read these files:
-- .tasks/<status-dir>/<id>/task.yaml (metadata)
-- .tasks/<status-dir>/<id>/spec.md (specification)
-- .tasks/<status-dir>/<id>/plan.md (if exists)
-- .tasks/<status-dir>/<id>/impl.md (if exists)
-- .tasks/<status-dir>/<id>/revw.md (if exists)
+- .tasks/items/<status-dir>/<id>/task.yaml (metadata)
+- .tasks/items/<status-dir>/<id>/spec.md (specification)
+- .tasks/items/<status-dir>/<id>/plan.md (if exists)
+- .tasks/items/<status-dir>/<id>/impl.md (if exists)
+- .tasks/items/<status-dir>/<id>/revw.md (if exists)
 
 Check for:
 1. GAPS: Are there acceptance criteria with no corresponding change? Changes with no acceptance criterion? Scope items with no implementation?

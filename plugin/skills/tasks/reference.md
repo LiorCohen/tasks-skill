@@ -53,34 +53,34 @@ During implementation, worktrees are created under `.worktrees/task-<id>/`:
 ### Task Lifecycle
 
 ```
-                  0-inbox/ (open tasks)
+             items/0-inbox/ (open tasks)
                            ↓
                      [/tasks spec]
                            ↓
-                     1-speccing/
+                  items/1-speccing/
                            ↓
                      [/tasks plan]
                            ↓
-                     2-planning/
+                  items/2-planning/
                            ↓
                  [/tasks plan-review]
                            ↓
-                    3-plan-review/
+                 items/3-plan-review/
                            ↓
                   [/tasks implement]
                            ↓
-                   4-implementing/
+                items/4-implementing/
                            ↓
                    [/tasks review]
                            ↓
-                    5-reviewing/
+                 items/5-reviewing/
                            ↓
                    [/tasks complete]
                            ↓
-                     6-complete/
+                  items/6-complete/
 
-Any status → 8-consolidated/ (if combined with another)
-Any status → 7-rejected/ (if irrelevant or out of scope)
+Any status → items/8-consolidated/ (if combined with another)
+Any status → items/7-rejected/ (if irrelevant or out of scope)
 ```
 
 **Priority** (high/medium/low) can be set at any point and only affects INDEX.md grouping (sub-sections under Inbox).

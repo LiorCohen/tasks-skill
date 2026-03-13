@@ -7,9 +7,14 @@ import subprocess
 from datetime import datetime, timezone
 from pathlib import Path
 
-from .constants import STATUS_DIRS
+from .constants import ITEMS_SUBDIR, STATUS_DIRS
 from .io import read_meta
 from .output import error_exit
+
+
+def items_dir(tasks_root: Path) -> Path:
+    """Return the items subdirectory (.tasks/items/) where status dirs live."""
+    return tasks_root / ITEMS_SUBDIR
 
 
 def find_tasks_root() -> Path:
@@ -35,7 +40,7 @@ def get_next_id(tasks_root: Path) -> int:
     """Scan all status dirs, find highest numeric folder name, return +1."""
     max_id = 0
     for status_dir in STATUS_DIRS.values():
-        dir_path = tasks_root / status_dir
+        dir_path = items_dir(tasks_root) / status_dir
         if not dir_path.is_dir():
             continue
         for entry in dir_path.iterdir():
@@ -54,7 +59,7 @@ def find_task(tasks_root: Path, task_id: int) -> tuple[str, Path]:
     Returns (status_name, full_path_to_task_folder).
     """
     for status_dir_name, dir_name in STATUS_DIRS.items():
-        task_path = tasks_root / dir_name / str(task_id)
+        task_path = items_dir(tasks_root) / dir_name / str(task_id)
         if task_path.is_dir():
             return status_dir_name, task_path
     error_exit(f"Task #{task_id} not found in any status directory.")
@@ -105,16 +110,16 @@ def git_add_and_commit(repo_root: Path, message: str):
 
 
 def ensure_status_dirs(tasks_root: Path):
-    """Ensure all status directories exist."""
+    """Ensure all status directories exist under items/."""
     for dir_name in STATUS_DIRS.values():
-        (tasks_root / dir_name).mkdir(parents=True, exist_ok=True)
+        (items_dir(tasks_root) / dir_name).mkdir(parents=True, exist_ok=True)
 
 
 def collect_all_tasks(tasks_root: Path) -> list[tuple[str, int, dict]]:
     """Scan all status dirs and return list of (status, id, meta)."""
     tasks = []
     for status_name, dir_name in STATUS_DIRS.items():
-        dir_path = tasks_root / dir_name
+        dir_path = items_dir(tasks_root) / dir_name
         if not dir_path.is_dir():
             continue
         for entry in sorted(dir_path.iterdir()):
