@@ -302,9 +302,13 @@ Report the created worktree path to the user.
 
 **Step 3 — Create impl.md:**
 
-Create `impl.md` in the task folder with the header:
+Create `impl.md` in the task folder with frontmatter and header (run `date -u '+%Y-%m-%d %H:%M UTC'` for the timestamp):
 
 ```markdown
+---
+created: YYYY-MM-DD HH:MM UTC
+---
+
 # Implementation Report: Task #<id>
 ```
 
@@ -569,7 +573,7 @@ Return a JSON verdict:
 
 The user decides when to advance between phases. Always wait for their explicit instruction. The `/tasks implement` exception only applies to starting the coding work — it does NOT grant permission to transition to reviewing or complete afterward.
 
-**No phase skipping:** The lifecycle is strictly sequential: inbox → speccing → planning → plan-review → implementing → reviewing → complete. Never skip a phase and never suggest skipping one. For example, after `/tasks add`, do not offer to go "straight to planning" — the next step is always speccing.
+**No phase skipping without challenge:** The lifecycle is strictly sequential: inbox → speccing → planning → plan-review → implementing → reviewing → complete. Skip-forward transitions (e.g., inbox → implementing for quick fixes) are allowed only after challenging the user: "This task hasn't been specced/planned — are you sure?" Require explicit confirmation before proceeding. When skipping, pass `--force` to the CLI: `python3 $TASKS_CLI transition <id> <status> --force`. After `/tasks add`, do not offer to go "straight to planning" — the default next step is always speccing.
 
 **Branch isolation:** When working inside a feature branch or worktree, only modify the task associated with that branch. Never touch other tasks. Never create new tasks in a feature branch — create and commit them directly on main.
 

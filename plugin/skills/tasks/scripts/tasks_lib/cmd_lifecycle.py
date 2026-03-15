@@ -6,7 +6,7 @@ import re
 import shutil
 import subprocess
 
-from .constants import STATUS_DIRS
+from .constants import STATUS_DIRS, VALID_TRANSITIONS
 from .helpers import (
     collect_all_tasks,
     find_task,
@@ -39,6 +39,16 @@ def cmd_transition(args):
             "changed": False,
         })
         return
+
+    # Validate transition
+    force = getattr(args, "force", False)
+    allowed = VALID_TRANSITIONS.get(current_status, set())
+    if target_status not in allowed and not force:
+        error_exit(
+            f"Invalid transition: {current_status} → {target_status}. "
+            f"Allowed transitions from '{current_status}': {', '.join(sorted(allowed)) or 'none'}. "
+            f"Use --force to skip forward."
+        )
 
     # Move folder
     target_dir = items_dir(tasks_root) / STATUS_DIRS[target_status] / str(task_id)

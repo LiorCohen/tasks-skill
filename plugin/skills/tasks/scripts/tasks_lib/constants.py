@@ -25,6 +25,17 @@ ARCHIVE_STATUSES = ["complete", "rejected", "consolidated"]
 
 VALID_PRIORITIES = {"low", "medium", "high", "inherit"}
 
+# Valid status transitions (from → set of allowed targets)
+# Sequential lifecycle + reject/consolidate from any status
+VALID_TRANSITIONS = {
+    "inbox": {"speccing", "rejected", "consolidated"},
+    "speccing": {"planning", "rejected", "consolidated"},
+    "planning": {"plan-review", "rejected", "consolidated"},
+    "plan-review": {"implementing", "rejected", "consolidated"},
+    "implementing": {"reviewing", "rejected", "consolidated"},
+    "reviewing": {"complete", "rejected", "consolidated"},
+}
+
 # Frontmatter field ordering for serialization
 FIELD_ORDER = [
     "id", "title", "type", "priority", "status", "parent_epic",

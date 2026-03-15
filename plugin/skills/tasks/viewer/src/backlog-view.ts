@@ -277,21 +277,6 @@ export class BacklogViewProvider implements vscode.WebviewViewProvider {
     text-overflow: ellipsis;
     white-space: nowrap;
   }
-  .task-tags {
-    display: flex;
-    gap: 4px;
-    padding-left: 46px;
-    padding-top: 1px;
-  }
-  .repo-tag {
-    font-size: 0.7em;
-    color: var(--vscode-descriptionForeground);
-    opacity: 0.7;
-    border: 1px solid var(--vscode-panel-border);
-    border-radius: 8px;
-    padding: 0 5px;
-  }
-
   /* Type badges */
   .type-tag {
     font-size: 0.7em;

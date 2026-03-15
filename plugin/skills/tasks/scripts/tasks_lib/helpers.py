@@ -118,9 +118,13 @@ def git_add_and_commit(repo_root: Path, message: str):
 
 
 def ensure_status_dirs(tasks_root: Path):
-    """Ensure all status directories exist under items/."""
+    """Ensure all status directories exist under items/ with .gitkeep files."""
     for dir_name in STATUS_DIRS.values():
-        (items_dir(tasks_root) / dir_name).mkdir(parents=True, exist_ok=True)
+        dir_path = items_dir(tasks_root) / dir_name
+        dir_path.mkdir(parents=True, exist_ok=True)
+        gitkeep = dir_path / ".gitkeep"
+        if not gitkeep.exists():
+            gitkeep.touch()
 
 
 def collect_all_tasks(tasks_root: Path) -> list[tuple[str, int, dict]]:

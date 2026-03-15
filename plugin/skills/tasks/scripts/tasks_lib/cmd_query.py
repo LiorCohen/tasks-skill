@@ -206,26 +206,28 @@ def cmd_audit(args):
                     if not isinstance(blocked_deps, list) or tid not in blocked_deps:
                         warnings.append(f"#{tid} blocks #{blocked_id}, but #{blocked_id} doesn't depend on #{tid}")
 
-    def has_cycle(start, visited=None, path=None):
-        if visited is None:
-            visited = set()
-        if path is None:
-            path = set()
-        visited.add(start)
-        path.add(start)
-        for dep in dep_graph.get(start, []):
-            if dep in path:
-                return True
-            if dep not in visited and has_cycle(dep, visited, path):
-                return True
-        path.discard(start)
-        return False
+    WHITE, GRAY, BLACK = 0, 1, 2
+    color = {tid: WHITE for tid in dep_graph}
 
-    visited_global = set()
+    def dfs(node):
+        color[node] = GRAY
+        for dep in dep_graph.get(node, []):
+            if dep not in color:
+                continue
+            if color[dep] == GRAY:
+                return dep
+            if color[dep] == WHITE:
+                found = dfs(dep)
+                if found is not None:
+                    return found
+        color[node] = BLACK
+        return None
+
     for tid in dep_graph:
-        if tid not in visited_global:
-            if has_cycle(tid, visited_global):
-                errors.append(f"Circular dependency detected involving #{tid}")
+        if color[tid] == WHITE:
+            cycle_node = dfs(tid)
+            if cycle_node is not None:
+                errors.append(f"Circular dependency detected involving #{cycle_node}")
 
     # --- Summary ---
     status_counts = {}

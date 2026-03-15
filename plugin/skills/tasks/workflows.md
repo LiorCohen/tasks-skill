@@ -235,9 +235,13 @@ Report the created worktree path to the user.
 
 **Step 3 — Create impl.md:**
 
-Create `impl.md` in the task folder:
+Create `impl.md` in the task folder with frontmatter and header (run `date -u '+%Y-%m-%d %H:%M UTC'` for the timestamp):
 
 ```markdown
+---
+created: YYYY-MM-DD HH:MM UTC
+---
+
 # Implementation Report: Task #<id>
 ```
 
@@ -547,6 +551,6 @@ Quick reference for which CLI command maps to each user instruction:
 
 **CRITICAL — Explicit approval required for every transition:** Never transition a task to a new status without the user explicitly requesting it. After completing any phase of work (implementation, review, etc.), **STOP and return control to the user**. Do not assume the next transition — wait for the user to tell you. The only exception is `/tasks implement`, where implementation work begins immediately after the transition, but even then, do NOT auto-transition to reviewing when implementation is done.
 
-Skip-forward transitions are allowed (e.g., inbox → implementing for quick fixes), but Claude must always challenge the user before skipping phases: "This task hasn't been specced/planned — are you sure?" Require explicit confirmation before proceeding.
+Skip-forward transitions are allowed (e.g., inbox → implementing for quick fixes), but Claude must always challenge the user before skipping phases: "This task hasn't been specced/planned — are you sure?" Require explicit confirmation before proceeding. When skipping, pass `--force` to the CLI: `python3 $TASKS_CLI transition <id> <status> --force`.
 
 **Branch isolation:** When working inside a feature branch or worktree, only modify the task associated with that branch. Never touch other tasks. Never create new tasks in a feature branch — create and commit them directly on main.

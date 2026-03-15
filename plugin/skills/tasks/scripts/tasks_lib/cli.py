@@ -41,6 +41,7 @@ def main():
     p_tr = sub.add_parser("transition", help="Move task to new status")
     p_tr.add_argument("id", type=int)
     p_tr.add_argument("status", choices=list(STATUS_DIRS.keys()))
+    p_tr.add_argument("--force", action="store_true", help="Allow skip-forward transitions")
 
     # prioritize
     p_pr = sub.add_parser("prioritize", help="Set task priority")

@@ -17,7 +17,7 @@ const STATUS_LABELS: Readonly<Record<string, string>> = {
   'plan-review': '\u2705 Plan Review',
   'implementing': '\u{1F528} Implementing',
   'reviewing': '\u{1F50D} Reviewing',
-  'complete': '\u2705 Complete',
+  'complete': '\u{1F389} Complete',
 };
 
 type TaskType = 'epic' | 'change';
@@ -63,16 +63,12 @@ export class TaskDetailPanel {
       dark: vscode.Uri.file(path.join(__dirname, '..', 'media', 'icons', 'task-detail-dark.svg')),
     };
     this.panel.webview.options = { enableScripts: true };
-    this.panel.webview.onDidReceiveMessage((msg: { readonly command: string; readonly path?: string; readonly priority?: string; readonly taskPath?: string }) => {
+    this.panel.webview.onDidReceiveMessage((msg: { readonly command: string; readonly path?: string }) => {
       if (msg.command === 'openFile' && msg.path) {
         const fullPath = path.join(this.tasksDir, msg.path);
         if (fs.existsSync(fullPath)) {
           void vscode.window.showTextDocument(vscode.Uri.file(fullPath));
         }
-      } else if (msg.command === 'setPriority' && msg.priority && msg.taskPath) {
-        const fullPath = path.join(this.tasksDir, msg.taskPath);
-        setPriorityInFile(fullPath, msg.priority);
-        this.update();
       }
     });
 
@@ -174,7 +170,6 @@ export class TaskDetailPanel {
     const hasRevw = fs.existsSync(revwPath);
     const hasLegacyChanges = fs.existsSync(changesPath) && !hasRevw;
 
-    const yamlRelPath = path.relative(this.tasksDir, yamlPath).replace(/\\/g, '/');
     const specRelPath = path.relative(this.tasksDir, specPath).replace(/\\/g, '/');
     const planRelPath = path.relative(this.tasksDir, planPath).replace(/\\/g, '/');
     const implRelPath = path.relative(this.tasksDir, implPath).replace(/\\/g, '/');
@@ -364,29 +359,6 @@ export class TaskDetailPanel {
     padding: 1px 6px;
     border-radius: 3px;
   }
-  .priority-buttons {
-    display: inline-flex;
-    gap: 2px;
-    margin-left: 6px;
-  }
-  .prio-btn {
-    background: none;
-    border: 1px solid transparent;
-    border-radius: 3px;
-    cursor: pointer;
-    padding: 1px 4px;
-    font-size: 0.8em;
-    opacity: 0.4;
-    transition: opacity 0.15s;
-  }
-  .prio-btn:hover {
-    opacity: 1;
-    background: var(--vscode-toolbar-hoverBackground, rgba(128,128,128,0.2));
-  }
-  .prio-btn.active {
-    opacity: 1;
-    border-color: var(--vscode-focusBorder);
-  }
   /* highlight.js tokens mapped to VS Code theme */
   .hljs-keyword, .hljs-selector-tag, .hljs-built_in, .hljs-name { color: var(--vscode-symbolIcon-keywordForeground, #569cd6); }
   .hljs-string, .hljs-attr, .hljs-template-tag { color: var(--vscode-symbolIcon-stringForeground, #ce9178); }
@@ -417,11 +389,6 @@ export class TaskDetailPanel {
       <div class="meta-item">
         <span class="meta-label">Priority:</span>
         <span class="priority-display">${priorityLabel}</span>
-        <span class="priority-buttons" data-task-path="${escapeHtml(yamlRelPath)}">
-          <button class="prio-btn${priority === 'high' ? ' active' : ''}" data-priority="high" title="High">\u{1F534}</button>
-          <button class="prio-btn${priority === 'medium' ? ' active' : ''}" data-priority="medium" title="Medium">\u{1F7E1}</button>
-          <button class="prio-btn${priority === 'low' ? ' active' : ''}" data-priority="low" title="Low">\u{1F535}</button>
-        </span>
       </div>
       ${created ? `<div class="meta-item"><span class="meta-label">Created:</span> ${escapeHtml(created)}</div>` : ''}
     </div>
@@ -465,15 +432,6 @@ export class TaskDetailPanel {
       });
     });
 
-    document.querySelectorAll('.prio-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const container = btn.closest('.priority-buttons');
-        const taskPath = container?.dataset?.taskPath;
-        if (taskPath) {
-          vscode.postMessage({ command: 'setPriority', priority: btn.dataset.priority, taskPath });
-        }
-      });
-    });
   </script>
 </body>
 </html>`;
@@ -537,35 +495,6 @@ const parseYamlMeta = (content: string): TaskFrontmatter => {
     parentEpic: get('parent_epic'),
     created: get('created'),
   };
-};
-
-const setPriorityInFile = (filePath: string, priority: string): boolean => {
-  try {
-    const content = fs.readFileSync(filePath, 'utf8');
-
-    if (filePath.endsWith('.yaml')) {
-      // task.yaml: plain YAML, no --- delimiters
-      const updated = content.match(/^priority:\s*.+$/m)
-        ? content.replace(/^priority:\s*.+$/m, `priority: ${priority}`)
-        : `${content.trimEnd()}\npriority: ${priority}\n`;
-      fs.writeFileSync(filePath, updated, 'utf8');
-      return true;
-    }
-
-    // Legacy: task.md with frontmatter
-    const match = content.match(/^(---\n)([\s\S]*?)(\n---)/);
-    if (!match) return false;
-
-    const [, open, fm, close] = match;
-    const updatedFm = fm.match(/^priority:\s*.+$/m)
-      ? fm.replace(/^priority:\s*.+$/m, `priority: ${priority}`)
-      : `${fm}\npriority: ${priority}`;
-
-    fs.writeFileSync(filePath, content.replace(`${open}${fm}${close}`, `${open}${updatedFm}${close}`), 'utf8');
-    return true;
-  } catch {
-    return false;
-  }
 };
 
 const escapeHtml = (text: string): string =>

@@ -26,6 +26,13 @@ def cmd_review(args):
     # Check if worktree exists
     worktree_path = repo_root / ".worktrees" / f"task-{task_id}"
     if worktree_path.is_dir():
+        # Read actual branch name from worktree
+        branch_result = subprocess.run(
+            ["git", "-C", str(worktree_path), "branch", "--show-current"],
+            capture_output=True, text=True,
+        )
+        if branch_result.stdout.strip():
+            branch = branch_result.stdout.strip()
         diff_cwd = str(worktree_path)
         diff_ref = "main..HEAD"
     else:

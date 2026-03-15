@@ -11,7 +11,7 @@ Manage your project backlog entirely through Claude Code — add tasks, spec the
 - **Execution planning**: Automatically generates step-by-step implementation plans from your spec
 - **Git worktree isolation**: Each task gets its own worktree and feature branch — main stays clean
 - **Epics**: Group related tasks under a parent epic with automatic child tracking
-- **Change tracking**: Auto-generated `changes.md` with file-level diff summaries
+- **Change tracking**: Auto-generated `revw.md` with file-level diff summaries
 - **Backlog auditing**: Detect structural issues, stale tasks, and dependency problems
 - **VS Code viewer**: Optional sidebar extension to browse your `.tasks/` backlog visually
 
@@ -111,9 +111,11 @@ Each transition is committed automatically with a `Tasks:` prefix.
 ```
 
 Each task is a numbered folder (e.g., `items/0-inbox/42/`) containing:
-- `task.md` — Description, spec, and metadata (YAML frontmatter)
+- `task.yaml` — Pure YAML metadata (always present)
+- `spec.md` — Specification with YAML frontmatter (created on add, filled during speccing)
 - `plan.md` — Execution plan (created during planning)
-- `changes.md` — File change summary (generated during review)
+- `impl.md` — Implementation report with iteration history (created during implementation)
+- `revw.md` — Review notes and change summary (created during review)
 
 ## VS Code Viewer
 
