@@ -2,6 +2,26 @@
 
 All notable changes to the tasks-skill plugin are documented here.
 
+## [3.1.1] - 2026-03-15
+
+### Fixed
+
+- **README**: Updated stale v1 file structure (`task.md`/`changes.md`) to v2 (`task.yaml`/`spec.md`/`plan.md`/`impl.md`/`revw.md`).
+- **SKILL.md / workflows.md contradiction**: Aligned skip-forward transition policy — allowed with `--force` after challenging the user.
+- **SKILL.md / workflows.md**: Added missing YAML frontmatter to `impl.md` creation template (now matches `schemas.md`).
+- **CLI transition validation**: Added `VALID_TRANSITIONS` map; `cmd_transition` now rejects invalid transitions unless `--force` is passed.
+- **Cycle detection in `audit`**: Replaced broken shared-visited algorithm with correct 3-color DFS.
+- **`cmd_review` branch name**: Now reads actual branch from worktree instead of guessing via `slugify`.
+- **`.gitkeep` creation**: `ensure_status_dirs` now creates `.gitkeep` files so empty status directories are tracked by git.
+
+### Viewer (1.1.1)
+
+- **Removed priority buttons**: They bypassed the CLI pipeline (no INDEX.md rebuild or git commit). Priority is now read-only in the viewer; use `/tasks prioritize` instead.
+- **Removed dead CSS**: `.repo-tag` and `.task-tags` classes left over from the removed `repos` field.
+- **Distinct complete emoji**: Complete status now uses a different emoji from Plan Review.
+
+---
+
 ## [3.1.0] - 2026-03-15
 
 ### Added
