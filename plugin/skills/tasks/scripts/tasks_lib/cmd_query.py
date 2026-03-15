@@ -15,6 +15,7 @@ from .helpers import (
     find_task,
     find_tasks_root,
     get_effective_priority,
+    has_legacy_layout,
     items_dir,
 )
 from .io import read_meta, read_spec, write_spec
@@ -61,6 +62,13 @@ def cmd_list(args):
         if t["status"] == "inbox" and t["priority"]:
             inbox_by_priority[t["priority"]] = inbox_by_priority.get(t["priority"], 0) + 1
 
+    warnings = []
+    if has_legacy_layout(tasks_root):
+        warnings.append(
+            "Legacy layout detected: status dirs exist directly under .tasks/ "
+            "instead of .tasks/items/. Run 'migrate' to move them."
+        )
+
     output_success("list", {
         "tasks": tasks_out,
         "summary": {
@@ -68,7 +76,7 @@ def cmd_list(args):
             "by_status": counts_by_status,
             "inbox_by_priority": inbox_by_priority,
         },
-    })
+    }, warnings=warnings or None)
 
 
 def cmd_audit(args):
@@ -224,6 +232,12 @@ def cmd_audit(args):
     for status, _, _ in all_tasks:
         status_counts[status] = status_counts.get(status, 0) + 1
     open_count = sum(v for k, v in status_counts.items() if k not in ARCHIVE_STATUSES)
+
+    if has_legacy_layout(tasks_root):
+        warnings.append(
+            "Legacy layout detected: status dirs exist directly under .tasks/ "
+            "instead of .tasks/items/. Run 'migrate' to move them."
+        )
 
     oldest = None
     for status, tid, meta in all_tasks:

@@ -89,6 +89,7 @@ Print this command list:
 /tasks reject <id> [reason]        — Reject task
 /tasks consolidate <id> into <id>  — Consolidate into another task
 /tasks audit                       — Run structural audit
+/tasks migrate                     — Migrate legacy layout to items/
 /tasks install-viewer              — Build & install VS Code extension
 /tasks uninstall-viewer            — Remove VS Code extension
 ```
@@ -426,6 +427,20 @@ Check `data.epic_sync_needed` and run `python3 $TASKS_CLI epic-sync <epic-id>` +
 The CLI moves the source task, updates frontmatter, preserves original content, rebuilds INDEX.md, and commits.
 
 Check `data.epic_sync_needed` and run `python3 $TASKS_CLI epic-sync <epic-id>` + commit if present.
+
+---
+
+### Migrate Legacy Layout
+
+```
+/tasks migrate
+```
+
+**Run:** `python3 $TASKS_CLI migrate`
+
+The CLI detects status directories (0-inbox, 1-speccing, etc.) that exist directly under `.tasks/` instead of under `.tasks/items/`, moves them into `items/`, rebuilds INDEX.md, and commits.
+
+**When to offer:** The `list` and `audit` commands include a warning when legacy layout is detected. When you see this warning, tell the user their project uses the old layout and offer to run `/tasks migrate` to update it. Do not migrate automatically — always ask first.
 
 ---
 

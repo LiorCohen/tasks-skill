@@ -17,6 +17,14 @@ def items_dir(tasks_root: Path) -> Path:
     return tasks_root / ITEMS_SUBDIR
 
 
+def has_legacy_layout(tasks_root: Path) -> bool:
+    """Check if status dirs exist directly under .tasks/ (pre-v3 layout)."""
+    for dir_name in STATUS_DIRS.values():
+        if (tasks_root / dir_name).is_dir():
+            return True
+    return False
+
+
 def find_tasks_root() -> Path:
     """Walk up from cwd looking for .tasks/ directory."""
     current = Path.cwd()

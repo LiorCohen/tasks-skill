@@ -2,6 +2,15 @@
 
 All notable changes to the tasks-skill plugin are documented here.
 
+## [3.1.0] - 2026-03-15
+
+### Added
+
+- **`/tasks migrate` command**: Detects projects using the pre-v3 layout (status dirs directly under `.tasks/`) and moves them into `.tasks/items/`, rebuilds INDEX.md, and commits. Always asks the user before migrating.
+- **Legacy layout warnings**: `list` and `audit` commands now include a warning when legacy status directories are detected outside `items/`, prompting the user to run `/tasks migrate`.
+
+---
+
 ## [3.0.0] - 2026-03-13
 
 ### Breaking Changes

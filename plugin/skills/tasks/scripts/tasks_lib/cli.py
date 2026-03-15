@@ -12,6 +12,7 @@ from .cmd_add import cmd_add, cmd_add_epic, cmd_add_to_epic
 from .cmd_lifecycle import cmd_complete, cmd_consolidate, cmd_prioritize, cmd_reject, cmd_transition
 from .cmd_query import cmd_audit, cmd_epic_sync, cmd_list
 from .cmd_review import cmd_review
+from .cmd_migrate import cmd_migrate
 from .cmd_viewer import cmd_install_viewer, cmd_uninstall_viewer
 from .index import cmd_sync_index
 
@@ -84,6 +85,9 @@ def main():
     # uninstall-viewer
     sub.add_parser("uninstall-viewer", help="Remove the VS Code viewer extension")
 
+    # migrate
+    sub.add_parser("migrate", help="Move legacy status dirs into items/ subdirectory")
+
     args = parser.parse_args()
 
     set_current_command(args.command)
@@ -104,6 +108,7 @@ def main():
         "consolidate": cmd_consolidate,
         "install-viewer": cmd_install_viewer,
         "uninstall-viewer": cmd_uninstall_viewer,
+        "migrate": cmd_migrate,
     }
 
     handler = dispatch.get(args.command)

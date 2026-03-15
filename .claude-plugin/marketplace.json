@@ -8,7 +8,7 @@
       "name": "tasks-skill",
       "source": "./plugin",
       "description": "Structured task management with a full lifecycle — spec, plan, implement, review, complete",
-      "version": "3.0.0"
+      "version": "3.1.0"
     }
   ]
 }
